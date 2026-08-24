@@ -1,0 +1,394 @@
+﻿# 京东广告投放 Agent 演示数据字典
+# 数据均为虚构数据，不对应任何真实客户、账户或生产系统。
+# 与 sql/ad_platform_v2.sql 保持一致。
+
+tables:
+  brand:
+    description: 虚构品牌主数据。用于按品牌汇总广告表现；品牌与广告账户是一对多关系。
+    columns:
+      brand_id:          {type: int, comment: 品牌主键ID, key: PRI, nullable: false}
+      brand_name:        {type: varchar(50), comment: 虚构品牌名称, key: UNI, nullable: false}
+      industry:          {type: varchar(30), comment: 所属行业, nullable: false}
+      category:          {type: varchar(50), comment: 主营类目, nullable: false}
+      account_manager:   {type: varchar(30), comment: 模拟运营负责人, nullable: false}
+      cooperation_start: {type: date, comment: 模拟合作开始日期, nullable: false}
+      status:            {type: tinyint, comment: 合作状态：1合作中，0暂停, nullable: false}
+
+  platform:
+    description: 广告平台维度。第一版仅包含京东，表结构保留后续平台扩展能力。
+    columns:
+      platform_id:   {type: int, comment: 平台主键ID, key: PRI, nullable: false}
+      platform_name: {type: varchar(20), comment: 平台名称，当前为京东, key: UNI, nullable: false}
+      platform_type: {type: varchar(20), comment: 平台类型，当前为电商平台, nullable: false}
+
+  ad_product:
+    description: 京东广告产品维度，包含京东快车、购物触点、京东海投、京东展位、直投和京速推。
+    columns:
+      product_id:   {type: int, comment: 广告产品主键ID, key: PRI, nullable: false}
+      platform_id:  {type: int, comment: 所属平台ID，关联platform.platform_id, key: MUL, nullable: false}
+      product_name: {type: varchar(30), comment: 广告产品名称, key: UNI, nullable: false}
+      product_type: {type: varchar(20), comment: 搜索广告/推荐广告/品牌广告/智能投放/定向广告, nullable: false}
+      charge_mode:  {type: varchar(10), comment: 计费方式：CPC或CPM, nullable: false}
+    foreignKeys:
+      - {column: platform_id, refTable: platform, refColumn: platform_id}
+
+  ad_account:
+    description: 广告账户与店铺主数据。品牌可能有旗舰店、自营店等多个京东广告账户，是数据权限和账户分析的基础维度。
+    columns:
+      account_id:   {type: int, comment: 广告账户主键ID, key: PRI, nullable: false}
+      account_name: {type: varchar(80), comment: 广告账户显示名称, nullable: false}
+      account_code: {type: varchar(50), comment: 虚构账户编码, key: UNI, nullable: false}
+      brand_id:     {type: int, comment: 所属品牌ID，关联brand.brand_id, key: MUL, nullable: false}
+      platform_id:  {type: int, comment: 所属平台ID，关联platform.platform_id, key: MUL, nullable: false}
+      shop_name:    {type: varchar(80), comment: 店铺名称, nullable: false}
+      account_type: {type: varchar(20), comment: 旗舰店/自营店/专卖店, nullable: false}
+      status:       {type: tinyint, comment: 账户状态：1启用，0停用, nullable: false}
+    foreignKeys:
+      - {column: brand_id, refTable: brand, refColumn: brand_id}
+      - {column: platform_id, refTable: platform, refColumn: platform_id}
+
+  campaign:
+    description: 广告投放计划。一个账户可以创建多个计划，每个计划对应一个广告产品，并配置日预算、目标和投放周期。
+    columns:
+      campaign_id:   {type: int, comment: 计划主键ID, key: PRI, nullable: false}
+      campaign_name: {type: varchar(150), comment: 投放计划名称, nullable: false}
+      account_id:    {type: int, comment: 所属广告账户ID，关联ad_account.account_id, key: MUL, nullable: false}
+      product_id:    {type: int, comment: 广告产品ID，关联ad_product.product_id, key: MUL, nullable: false}
+      objective:     {type: varchar(30), comment: 日常销售/新品推广/大促冲量/品牌曝光/竞品拦截, nullable: false}
+      day_budget:    {type: "decimal(12,2)", comment: 当前日预算，单位元, nullable: false}
+      total_budget:  {type: "decimal(14,2)", comment: 计划总预算，NULL表示不设总预算}
+      start_date:    {type: date, comment: 计划开始日期, nullable: false}
+      end_date:      {type: date, comment: 计划结束日期，NULL表示长期投放}
+      status:        {type: tinyint, comment: 计划状态：1投放中，0暂停, nullable: false}
+      creator:       {type: varchar(30), comment: 模拟创建人, nullable: false}
+    foreignKeys:
+      - {column: account_id, refTable: ad_account, refColumn: account_id}
+      - {column: product_id, refTable: ad_product, refColumn: product_id}
+
+  ad_group:
+    description: 广告单元。计划下的具体投放单元，可设置关键词、人群或智能定向以及出价策略。
+    columns:
+      ad_group_id:    {type: int, comment: 广告单元主键ID, key: PRI, nullable: false}
+      ad_group_name:  {type: varchar(150), comment: 广告单元名称, nullable: false}
+      campaign_id:    {type: int, comment: 所属计划ID，关联campaign.campaign_id, key: MUL, nullable: false}
+      targeting_type: {type: varchar(30), comment: 关键词精准/关键词广泛/人群定向/智能定向/类目定向, nullable: false}
+      bid_strategy:   {type: varchar(30), comment: 手动出价/目标ROI/最大化转化/自动出价, nullable: false}
+      bid_price:      {type: "decimal(8,2)", comment: CPC出价或目标成本参数}
+      status:         {type: tinyint, comment: 单元状态：1投放中，0暂停, nullable: false}
+    foreignKeys:
+      - {column: campaign_id, refTable: campaign, refColumn: campaign_id}
+
+  creative:
+    description: 广告创意素材。一个广告单元可以挂载多个主图、场景图、短视频或文字链素材。
+    columns:
+      creative_id:   {type: int, comment: 创意主键ID, key: PRI, nullable: false}
+      creative_name: {type: varchar(150), comment: 创意名称, nullable: false}
+      ad_group_id:   {type: int, comment: 所属广告单元ID，关联ad_group.ad_group_id, key: MUL, nullable: false}
+      creative_type: {type: varchar(20), comment: 主图/场景图/短视频/文字链, nullable: false}
+      material_size: {type: varchar(30), comment: 素材尺寸或视频时长}
+      create_date:   {type: date, comment: 创意创建日期, nullable: false}
+      status:        {type: tinyint, comment: 创意状态：1启用，0停用, nullable: false}
+    foreignKeys:
+      - {column: ad_group_id, refTable: ad_group, refColumn: ad_group_id}
+
+  keyword_info:
+    description: 京东快车关键词主数据。仅搜索快车计划包含关键词，记录匹配方式、出价和模拟质量分。
+    columns:
+      keyword_id:    {type: int, comment: 关键词主键ID, key: PRI, nullable: false}
+      ad_group_id:   {type: int, comment: 所属广告单元ID，关联ad_group.ad_group_id, key: MUL, nullable: false}
+      keyword_text:  {type: varchar(100), comment: 关键词文本, key: MUL, nullable: false}
+      match_type:    {type: varchar(20), comment: 精确匹配/短语匹配/广泛匹配, nullable: false}
+      bid_price:     {type: "decimal(8,2)", comment: 关键词出价，单位元, nullable: false}
+      quality_score: {type: "decimal(4,1)", comment: 模拟质量分，范围0至10, nullable: false}
+      status:        {type: tinyint, comment: 关键词状态：1启用，0暂停, nullable: false}
+    foreignKeys:
+      - {column: ad_group_id, refTable: ad_group, refColumn: ad_group_id}
+
+  audience_package:
+    description: 广告定向人群包。来源于数坊、京腾魔方或DMP，可被触点、直投等计划用于人群定向。
+    columns:
+      package_id:    {type: int, comment: 人群包主键ID, key: PRI, nullable: false}
+      package_name:  {type: varchar(100), comment: 人群包名称, nullable: false}
+      account_id:    {type: int, comment: 所属广告账户ID，关联ad_account.account_id, key: MUL, nullable: false}
+      audience_type: {type: varchar(30), comment: 品牌人群/品类兴趣/竞品人群/相似扩展/老客复购, nullable: false}
+      source:        {type: varchar(20), comment: 数坊/京腾魔方/DMP, nullable: false}
+      estimated_uv:  {type: bigint, comment: 预估覆盖人数, nullable: false}
+      create_date:   {type: date, comment: 创建日期, nullable: false}
+      expire_date:   {type: date, comment: 过期日期}
+      status:        {type: tinyint, comment: 人群包状态：1生效，0停用, nullable: false}
+    foreignKeys:
+      - {column: account_id, refTable: ad_account, refColumn: account_id}
+
+  ad_group_audience_relation:
+    description: 广告单元与人群包绑定关系。用于查询某个计划或广告单元实际使用了哪些定向人群及其溢价系数；仅记录关系，不代表Agent可创建或修改人群绑定。
+    columns:
+      relation_id:     {type: bigint, comment: 关系主键ID, key: PRI, nullable: false}
+      ad_group_id:     {type: int, comment: 广告单元ID，关联ad_group.ad_group_id, key: MUL, nullable: false}
+      package_id:      {type: int, comment: 人群包ID，关联audience_package.package_id, key: MUL, nullable: false}
+      bid_coefficient: {type: "decimal(5,2)", comment: 人群溢价系数，例如1.20表示基础出价的1.2倍, nullable: false}
+      bind_time:       {type: datetime, comment: 绑定时间, nullable: false}
+      status:          {type: tinyint, comment: 绑定状态：1生效，0停用, nullable: false}
+    foreignKeys:
+      - {column: ad_group_id, refTable: ad_group, refColumn: ad_group_id}
+      - {column: package_id, refTable: audience_package, refColumn: package_id}
+
+  ad_performance_daily:
+    description: 核心广告效果日报，粒度为日期加广告单元。按计划、账户、品牌或渠道汇总时使用此表；不得再与创意或关键词日报直接累加。
+    columns:
+      id:                  {type: bigint, comment: 主键ID, key: PRI, nullable: false}
+      data_date:           {type: date, comment: 数据日期, key: MUL, nullable: false}
+      account_id:          {type: int, comment: 广告账户ID，关联ad_account.account_id, key: MUL, nullable: false}
+      product_id:          {type: int, comment: 广告产品ID，关联ad_product.product_id, key: MUL, nullable: false}
+      campaign_id:         {type: int, comment: 计划ID，关联campaign.campaign_id, key: MUL, nullable: false}
+      ad_group_id:         {type: int, comment: 广告单元ID，关联ad_group.ad_group_id, key: MUL, nullable: false}
+      impressions:         {type: bigint, comment: 展现量，可SUM汇总, nullable: false}
+      clicks:              {type: bigint, comment: 点击量，可SUM汇总, nullable: false}
+      cost:                {type: "decimal(14,2)", comment: 广告消耗，单位元，可SUM汇总, nullable: false}
+      orders_direct:       {type: int, comment: 直接成交订单数，可SUM汇总, nullable: false}
+      gmv_direct:          {type: "decimal(14,2)", comment: 直接成交GMV，单位元，可SUM汇总, nullable: false}
+      orders_7d:           {type: int, comment: 7日归因订单数，可SUM汇总, nullable: false}
+      gmv_7d:              {type: "decimal(14,2)", comment: 7日归因GMV，单位元，可SUM汇总, nullable: false}
+      add_to_cart:         {type: int, comment: 加购次数，可SUM汇总, nullable: false}
+      favorites:           {type: int, comment: 收藏次数，可SUM汇总, nullable: false}
+      new_customer_orders: {type: int, comment: 新客订单数，可SUM汇总, nullable: false}
+      budget_snapshot:     {type: "decimal(12,2)", comment: 当日计划预算快照，不能跨单元直接SUM, nullable: false}
+    foreignKeys:
+      - {column: account_id, refTable: ad_account, refColumn: account_id}
+      - {column: product_id, refTable: ad_product, refColumn: product_id}
+      - {column: campaign_id, refTable: campaign, refColumn: campaign_id}
+      - {column: ad_group_id, refTable: ad_group, refColumn: ad_group_id}
+
+  creative_performance_daily:
+    description: 创意效果日报，粒度为日期加创意。只用于创意维度分析；不能与ad_performance_daily同时汇总同一指标，否则会重复计算。
+    columns:
+      id:            {type: bigint, comment: 主键ID, key: PRI, nullable: false}
+      data_date:     {type: date, comment: 数据日期, key: MUL, nullable: false}
+      creative_id:   {type: int, comment: 创意ID，关联creative.creative_id, key: MUL, nullable: false}
+      ad_group_id:   {type: int, comment: 广告单元ID，关联ad_group.ad_group_id, key: MUL, nullable: false}
+      campaign_id:   {type: int, comment: 计划ID，关联campaign.campaign_id, key: MUL, nullable: false}
+      impressions:   {type: bigint, comment: 展现量, nullable: false}
+      clicks:        {type: bigint, comment: 点击量, nullable: false}
+      cost:          {type: "decimal(14,2)", comment: 广告消耗，单位元, nullable: false}
+      orders_direct: {type: int, comment: 直接成交订单数, nullable: false}
+      gmv_direct:    {type: "decimal(14,2)", comment: 直接成交GMV，单位元, nullable: false}
+      orders_7d:     {type: int, comment: 7日归因订单数, nullable: false}
+      gmv_7d:        {type: "decimal(14,2)", comment: 7日归因GMV，单位元, nullable: false}
+    foreignKeys:
+      - {column: creative_id, refTable: creative, refColumn: creative_id}
+      - {column: ad_group_id, refTable: ad_group, refColumn: ad_group_id}
+      - {column: campaign_id, refTable: campaign, refColumn: campaign_id}
+
+  keyword_performance_daily:
+    description: 京东快车关键词效果日报，粒度为日期加关键词。只用于关键词维度分析；不能与核心日报同时汇总同一指标。
+    columns:
+      id:            {type: bigint, comment: 主键ID, key: PRI, nullable: false}
+      data_date:     {type: date, comment: 数据日期, key: MUL, nullable: false}
+      keyword_id:    {type: int, comment: 关键词ID，关联keyword_info.keyword_id, key: MUL, nullable: false}
+      ad_group_id:   {type: int, comment: 广告单元ID，关联ad_group.ad_group_id, key: MUL, nullable: false}
+      campaign_id:   {type: int, comment: 计划ID，关联campaign.campaign_id, key: MUL, nullable: false}
+      impressions:   {type: bigint, comment: 展现量, nullable: false}
+      clicks:        {type: bigint, comment: 点击量, nullable: false}
+      cost:          {type: "decimal(14,2)", comment: 广告消耗，单位元, nullable: false}
+      orders_direct: {type: int, comment: 直接成交订单数, nullable: false}
+      gmv_direct:    {type: "decimal(14,2)", comment: 直接成交GMV，单位元, nullable: false}
+      orders_7d:     {type: int, comment: 7日归因订单数, nullable: false}
+      gmv_7d:        {type: "decimal(14,2)", comment: 7日归因GMV，单位元, nullable: false}
+    foreignKeys:
+      - {column: keyword_id, refTable: keyword_info, refColumn: keyword_id}
+      - {column: ad_group_id, refTable: ad_group, refColumn: ad_group_id}
+      - {column: campaign_id, refTable: campaign, refColumn: campaign_id}
+
+  budget_change_log:
+    description: 计划预算变更日志，记录人工调整和分时预算任务产生的预算变化。仅用于分析预算变化，不代表Agent可执行预算修改。
+    columns:
+      change_id:     {type: bigint, comment: 变更记录主键ID, key: PRI, nullable: false}
+      campaign_id:   {type: int, comment: 计划ID，关联campaign.campaign_id, key: MUL, nullable: false}
+      before_budget: {type: "decimal(12,2)", comment: 调整前日预算，单位元, nullable: false}
+      after_budget:  {type: "decimal(12,2)", comment: 调整后日预算，单位元, nullable: false}
+      change_source: {type: varchar(20), comment: 人工调整/分时预算任务, nullable: false}
+      reason:        {type: varchar(120), comment: 调整原因, nullable: false}
+      operator_name: {type: varchar(30), comment: 模拟操作人或任务名称, nullable: false}
+      change_time:   {type: datetime, comment: 调整时间, key: MUL, nullable: false}
+    foreignKeys:
+      - {column: campaign_id, refTable: campaign, refColumn: campaign_id}
+
+glossary:
+  - term: 数据时间范围
+    description: 演示库数据日期为2025-04-01至2025-06-30。相对时间必须以数据最大日期2025-06-30为基准，不使用系统当前日期。
+    sqlFragment: "SELECT MIN(data_date) AS min_date, MAX(data_date) AS max_date FROM ad_performance_daily"
+    synonyms: [时间基准, 数据截止日期, 最新数据日期]
+
+  - term: 近7天
+    description: 以演示数据最大日期2025-06-30为截止日，包含截止日在内的最近7个自然日，即2025-06-24至2025-06-30。
+    sqlFragment: "data_date BETWEEN '2025-06-24' AND '2025-06-30'"
+    synonyms: [最近7天, 最近一周, 近一周, 过去7天]
+
+  - term: 近30天
+    description: 以演示数据最大日期2025-06-30为截止日，包含截止日在内的最近30个自然日，即2025-06-01至2025-06-30。
+    sqlFragment: "data_date BETWEEN '2025-06-01' AND '2025-06-30'"
+    synonyms: [最近30天, 最近一个月, 近一个月, 过去30天]
+
+  - term: 本月
+    description: 演示数据最大日期所在月份，即2025年6月。
+    sqlFragment: "data_date BETWEEN '2025-06-01' AND '2025-06-30'"
+    synonyms: [这个月, 当前月, 6月, 六月份]
+
+  - term: 上月
+    description: 演示数据最大日期所在月份的上一个月，即2025年5月。
+    sqlFragment: "data_date BETWEEN '2025-05-01' AND '2025-05-31'"
+    synonyms: [上个月, 5月, 五月份]
+
+  - term: 618期间
+    description: 演示库定义的618活动周期为2025-05-20至2025-06-20。
+    sqlFragment: "data_date BETWEEN '2025-05-20' AND '2025-06-20'"
+    synonyms: [618大促, 年中大促, 大促期间, 618活动期]
+
+  - term: 618爆发期
+    description: 演示库定义的618流量高峰期为2025-06-15至2025-06-18。
+    sqlFragment: "data_date BETWEEN '2025-06-15' AND '2025-06-18'"
+    synonyms: [618高峰期, 大促爆发期]
+
+  - term: 京东快车
+    description: 京东搜索广告产品，主要通过关键词和商品推广获取搜索流量，演示库product_id为1。
+    sqlFragment: "product_id = 1"
+    synonyms: [快车, 搜索快车, 京东搜索广告, 关键词推广]
+
+  - term: 购物触点
+    description: 京东推荐广告产品，覆盖首页、商详、购物车等推荐场景，演示库product_id为2。
+    sqlFragment: "product_id = 2"
+    synonyms: [触点, 推荐广告, 京东推荐]
+
+  - term: 京东海投
+    description: 京东全店托管类智能投放产品，演示库product_id为3。
+    sqlFragment: "product_id = 3"
+    synonyms: [海投, 全店托管, 智能投放]
+
+  - term: 京东展位
+    description: 京东品牌展示广告产品，以品牌曝光为主要目标，演示库product_id为4。
+    sqlFragment: "product_id = 4"
+    synonyms: [展位, 品牌展位, 京东品牌广告]
+
+  - term: 直投
+    description: 京东定向广告产品，可结合数坊或DMP人群进行定向投放，演示库product_id为5。
+    sqlFragment: "product_id = 5"
+    synonyms: [定向投放, 精准投放, 京东直投]
+
+  - term: 京速推
+    description: 京东智能推广产品，适合新品起量或爆款冲量，演示库product_id为6。
+    sqlFragment: "product_id = 6"
+    synonyms: [京东智能推广, 一键推广, JST]
+
+  - term: 消耗
+    description: 广告实际花费金额，单位元。跨日期、账户、渠道或计划汇总时使用SUM(cost)。
+    sqlFragment: "SUM(cost) AS total_cost"
+    synonyms: [花费, 广告费, 广告消耗, cost, spend]
+
+  - term: 展现量
+    description: 广告被展示的次数，跨维度汇总时使用SUM(impressions)。
+    sqlFragment: "SUM(impressions) AS total_impressions"
+    synonyms: [曝光量, 展示量, impressions, 曝光次数]
+
+  - term: 点击量
+    description: 广告被点击的次数，跨维度汇总时使用SUM(clicks)。
+    sqlFragment: "SUM(clicks) AS total_clicks"
+    synonyms: [点击数, clicks, 点击次数]
+
+  - term: CTR
+    description: 点击率，等于汇总点击量除以汇总展现量。跨天或跨对象分析时不得对每日CTR直接求平均。
+    sqlFragment: "SUM(clicks) / NULLIF(SUM(impressions), 0) AS ctr"
+    synonyms: [点击率, click through rate]
+
+  - term: CPC
+    description: 平均点击成本，等于汇总消耗除以汇总点击量，单位元。
+    sqlFragment: "SUM(cost) / NULLIF(SUM(clicks), 0) AS cpc"
+    synonyms: [点击成本, 单次点击成本, average cpc]
+
+  - term: CPM
+    description: 千次展现成本，等于汇总消耗除以汇总展现量再乘1000，单位元。
+    sqlFragment: "SUM(cost) * 1000 / NULLIF(SUM(impressions), 0) AS cpm"
+    synonyms: [千次曝光成本, 千次展现成本]
+
+  - term: 直接成交订单数
+    description: 广告点击后按直接归因口径统计的成交订单数。
+    sqlFragment: "SUM(orders_direct) AS direct_orders"
+    synonyms: [直接订单, 直接成交笔数, 当日订单]
+
+  - term: 7日归因订单数
+    description: 广告点击后7日归因窗口内统计的成交订单数。
+    sqlFragment: "SUM(orders_7d) AS orders_7d"
+    synonyms: [7日订单, 七日归因订单, 归因订单]
+
+  - term: 直接GMV
+    description: 按直接归因口径统计的成交金额，单位元。
+    sqlFragment: "SUM(gmv_direct) AS direct_gmv"
+    synonyms: [直接成交金额, 直接销售额]
+
+  - term: 7日归因GMV
+    description: 广告点击后7日归因窗口内统计的成交金额，单位元。
+    sqlFragment: "SUM(gmv_7d) AS gmv_7d"
+    synonyms: [7日GMV, 七日归因成交金额, 归因GMV]
+
+  - term: ROI
+    description: 演示系统默认ROI口径为7日归因GMV除以广告消耗。用户只说ROI或投产比时直接使用此口径，并在答案中说明；无需追问。
+    sqlFragment: "SUM(gmv_7d) / NULLIF(SUM(cost), 0) AS roi_7d"
+    synonyms: [投产比, ROAS, 7日ROI, 7日投产比]
+
+  - term: 直接ROI
+    description: 直接归因GMV除以广告消耗，用于用户明确要求直接成交口径时。
+    sqlFragment: "SUM(gmv_direct) / NULLIF(SUM(cost), 0) AS roi_direct"
+    synonyms: [直接投产比, 直接ROAS, 当日ROI]
+
+  - term: CVR
+    description: 演示系统默认转化率使用7日归因订单数除以点击量。跨天或跨对象分析时按汇总分子分母重算。
+    sqlFragment: "SUM(orders_7d) / NULLIF(SUM(clicks), 0) AS cvr_7d"
+    synonyms: [转化率, 7日转化率, conversion rate]
+
+  - term: CPA
+    description: 演示系统默认转化成本使用消耗除以7日归因订单数，单位元。
+    sqlFragment: "SUM(cost) / NULLIF(SUM(orders_7d), 0) AS cpa_7d"
+    synonyms: [单次转化成本, 获客成本, 订单成本]
+
+  - term: 预算使用率
+    description: 某计划某天的消耗除以该计划当日预算。核心日报粒度是广告单元，必须先按campaign_id和data_date汇总cost，再用MAX(budget_snapshot)作为该计划当天预算，不能SUM预算快照。
+    sqlFragment: "SUM(cost) / NULLIF(MAX(budget_snapshot), 0) AS budget_utilization"
+    synonyms: [预算消耗率, 预算执行率, 预算进度]
+
+  - term: 广告账户
+    description: 品牌在京东平台上的投放账户和店铺载体。一个品牌可以有多个广告账户。
+    sqlFragment: "JOIN ad_account a ON a.account_id = ad_performance_daily.account_id"
+    synonyms: [账户, 店铺账户, 投放账户]
+
+  - term: 投放计划
+    description: 广告账户下按广告产品和投放目标创建的计划，是预算管理和效果分析的常用粒度。
+    sqlFragment: "JOIN campaign c ON c.campaign_id = ad_performance_daily.campaign_id"
+    synonyms: [计划, campaign, 广告计划]
+
+  - term: 广告单元
+    description: 投放计划下配置定向和出价的具体单元，是核心效果日报的最小粒度。
+    sqlFragment: "JOIN ad_group g ON g.ad_group_id = ad_performance_daily.ad_group_id"
+    synonyms: [单元, 广告组, ad group]
+
+  - term: 创意
+    description: 广告展示使用的主图、场景图、短视频或文字链。创意分析必须使用creative_performance_daily，不能和核心日报重复累计。
+    sqlFragment: "JOIN creative c ON c.creative_id = creative_performance_daily.creative_id"
+    synonyms: [素材, 广告素材, creative]
+
+  - term: 关键词
+    description: 京东快车搜索投放使用的关键词。关键词分析必须使用keyword_performance_daily和keyword_info。
+    sqlFragment: "JOIN keyword_info k ON k.keyword_id = keyword_performance_daily.keyword_id"
+    synonyms: [搜索词, keyword, 关键词投放]
+
+  - term: 人群包
+    description: 来源于数坊、京腾魔方或DMP的广告定向人群。查询计划或广告单元绑定的人群时，通过ad_group_audience_relation关联；当前系统仅查询，不执行人群创建或绑定。
+    sqlFragment: "JOIN ad_group_audience_relation r ON r.package_id = audience_package.package_id AND r.status = 1"
+    synonyms: [定向人群, 人群, audience, crowd package]
+
+  - term: 数坊
+    description: 京东生态中的人群数据与洞察工具，可用于创建和分析广告定向人群包。
+    sqlFragment: "source = '数坊'"
+    synonyms: [京东数坊, 数坊人群]
+
+  - term: 分时预算
+    description: 按预设时间段调整计划预算的自动化任务。预算变更记录在budget_change_log中；当前Agent只分析记录，不执行调整。
+    sqlFragment: "change_source = '分时预算任务'"
+    synonyms: [小时预算, 定时预算, 预算任务]

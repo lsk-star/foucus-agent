@@ -63,6 +63,10 @@ class LlmSettings(BaseModel):
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     max_tokens: int = Field(default=4096, ge=1)
 
+class SchemaProviderSettings(BaseModel):
+  source: str = "yaml"
+
+
 
 class Settings(BaseSettings):
     """根配置，由各能力模块各自拥有的配置组合而成。"""
@@ -82,6 +86,7 @@ class Settings(BaseSettings):
     auth: AuthSettings = AuthSettings()
     skill: SkillSettings = SkillSettings()
     llm: LlmSettings = LlmSettings()
+    schema_provider: SchemaProviderSettings = SchemaProviderSettings()
 
 
 @lru_cache
