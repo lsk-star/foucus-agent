@@ -16,3 +16,7 @@ def run() -> None:
         reload=False,
         access_log=False,
     )
+
+
+if __name__ == "__main__":
+    run()

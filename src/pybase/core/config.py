@@ -1,8 +1,15 @@
 from functools import lru_cache
 from typing import Literal
 
+from pathlib import Path
+
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+# Resolve configuration from the repository root instead of the process cwd.
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+ENV_FILE = PROJECT_ROOT / ".env"
 
 
 class AppSettings(BaseModel):
@@ -40,6 +47,12 @@ class AuthSettings(BaseModel):
     enabled: bool = False
 
 
+class SkillSettings(BaseModel):
+    """技能模块配置。"""
+
+    source: Literal["file", "oss"] = "file"
+    dir: Path = Path("skills")
+
 
 class LlmSettings(BaseModel):
     enabled: bool = False
@@ -55,7 +68,7 @@ class Settings(BaseSettings):
     """根配置，由各能力模块各自拥有的配置组合而成。"""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=ENV_FILE,
         env_file_encoding="utf-8",
         env_prefix="PYBASE_",
         env_nested_delimiter="__",
@@ -67,6 +80,7 @@ class Settings(BaseSettings):
     tracing: TracingSettings = TracingSettings()
     database: DatabaseSettings = DatabaseSettings()
     auth: AuthSettings = AuthSettings()
+    skill: SkillSettings = SkillSettings()
     llm: LlmSettings = LlmSettings()
 
 

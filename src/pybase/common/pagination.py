@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PageParams(BaseModel):
@@ -11,8 +11,11 @@ class PageParams(BaseModel):
 
 
 class PageResult[T](BaseModel):
+    """通用分页结果，允许 items 为任意类型（包括 SQLAlchemy ORM 模型）。"""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     items: list[T]
     page: int
     page_size: int
     total: int
-

@@ -1,7 +1,7 @@
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, make_url, pool
+from sqlalchemy import create_engine, make_url, pool
 
 from pybase.core.config import get_settings
 from pybase.infrastructure.database.base import Base
@@ -16,7 +16,6 @@ if not settings.database.url:
     raise RuntimeError("数据库迁移需要配置 PYBASE_DATABASE__URL")
 
 url = make_url(settings.database.url)
-# 应用使用异步驱动；Alembic 使用与已安装同步驱动匹配的 URL。
 sync_driver_names = {
     "postgresql+asyncpg": "postgresql+psycopg",
     "postgresql+psycopg_async": "postgresql+psycopg",
@@ -24,9 +23,13 @@ sync_driver_names = {
     "mysql+aiomysql": "mysql+pymysql",
     "sqlite+aiosqlite": "sqlite",
 }
+connect_args = {}
 if sync_driver_name := sync_driver_names.get(url.drivername):
     url = url.set(drivername=sync_driver_name)
-config.set_main_option("sqlalchemy.url", str(url))
+    if url.drivername == "mysql+pymysql":
+        connect_args["ssl"] = {}
+
+config.set_main_option("sqlalchemy.url", url.render_as_string(hide_password=False))
 target_metadata = Base.metadata
 
 
@@ -42,10 +45,10 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    connectable = create_engine(
+        config.get_main_option("sqlalchemy.url"),
         poolclass=pool.NullPool,
+        connect_args=connect_args,
     )
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
