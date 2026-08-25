@@ -1,0 +1,8 @@
+tables:
+  tag:
+    description: 标签表
+    columns:
+      tag_id:    {type: int, comment: 标签ID, key: PRI, nullable: false}
+      tag_name:  {type: varchar(30), comment: 标签名称, nullable: false}
+
+glossary: []

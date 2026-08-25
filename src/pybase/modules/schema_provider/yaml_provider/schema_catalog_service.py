@@ -9,7 +9,7 @@ from pybase.modules.schema_provider.schemas import (
     GlossaryTerm,
     SchemaCatalog,
     Table,
-    TableEntry,
+    TableEntry, LookupResult,
 )
 
 _SCHEMA_DIR = Path(__file__).resolve().parents[4] / "resources" / "schema"
@@ -19,8 +19,9 @@ _DEFAULT_CATALOG = _SCHEMA_DIR / "dodo_agentx.yml"
 class SchemaCatalogService:
     def __init__(self, catalog_path: Path | None = None):
         self._catalog_path = catalog_path or _DEFAULT_CATALOG
-        self._catalog: SchemaCatalog | None = None
+        self.catalog: SchemaCatalog | None = None
 
+    # 项目启动需要调用一次
     async def load(self) -> None:
         with open(self._catalog_path, encoding="utf-8") as f:
             raw: dict = yaml.safe_load(f)
@@ -63,21 +64,23 @@ class SchemaCatalogService:
 
     def _to_entry(self, table: Table) -> TableEntry:
         self._ensure_loaded()
+
+        # 当前表外键指向的表名
         outgoing = {fk.ref_table for fk in table.foreign_keys}
-        incoming = {
-            other.name
-            for other in self._catalog.tables
-            if any(fk.ref_table == table.name for fk in other.foreign_keys)
-        }
-        related = sorted(outgoing | incoming)
-        fk_descs = [
-            FkDesc(column=fk.column, ref_table=fk.ref_table, ref_column=fk.ref_column)
-            for fk in table.foreign_keys
-        ]
+
+        # 其他表外键指向当前表的表名
+        # incoming = {
+        #     other.name
+        #     for other in self._catalog.tables
+        #     if any(fk.ref_table == table.name for fk in other.foreign_keys)
+        # }
+        # 去重并排序
+        # related = sorted(outgoing | incoming)
+        related = sorted(set(outgoing))
+
         return TableEntry(
             name=table.name,
             description=table.description,
-            foreign_keys=fk_descs,
             related_tables=related,
         )
 
@@ -87,18 +90,33 @@ class SchemaCatalogService:
             await self.load()
         return [self._to_entry(t) for t in self._catalog.tables]
 
-    async def find(self, name: str) -> TableEntry | None:
+    async def find(self, name: str) -> Table | None:
         """按表名查详情；找不到返回 None。"""
         if self._catalog is None:
             await self.load()
         for table in self._catalog.tables:
             if table.name == name:
-                return self._to_entry(table)
+                return table
         return None
 
-    async def batch_find(self, names: list[str]) -> list[TableEntry | None]:
+    async def batch_find(self, names: list[str]) -> LookupResult:
         """批量按表名查详情；找不到的对应位置返回 None。"""
         if self._catalog is None:
             await self.load()
-        table_map = {t.name: t for t in self._catalog.tables}
-        return [self._to_entry(table_map[n]) if n in table_map else None for n in names]
+        found = []
+        missing = []
+        for name in names:
+            table = await self.find(name)
+            if table is not None:
+                found.append(table)
+            else:
+                missing.append(name)
+        return LookupResult(found=found, missing=missing)
+
+    async def glossary(self) -> list[GlossaryTerm]:
+        """
+        获取所有业务术语。
+        """
+        if self._catalog is None:
+            await self.load()
+        return self._catalog.glossary

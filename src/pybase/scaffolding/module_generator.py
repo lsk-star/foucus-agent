@@ -4,6 +4,22 @@ import keyword
 import re
 from string import Template
 
+"""
+模块生成 
+
+生成通用业务模块骨架：
+uv run pybase generate module user
+
+生成带数据库模型、通用仓储和请求级 Service依赖的模块:
+uv run pybase generate module user --with-model
+
+
+
+默认路由前缀和表名均使用模块名原样。可通过 --route-prefix、--table-name 覆盖；使用 --dry-run 仅查看文件变更。生成器不会猜测业务字段，也不会自动生成 CRUD HTTP 接口。
+
+生成器支持增量升级：先执行基础命令，后续再追加 --with-model 即可补齐模型、仓储、依赖注入、 数据库路由标记和 Alembic 模型导入。
+重复执行同一命令不会重复注册模块或覆盖已有 Router、Schema、 README、测试文件。若 Service 缺少生成器标记且无法确认安全升级，会拒绝覆盖；只有显式传入 --force 才会覆盖 Service 文件
+"""
 MODULE_NAME_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 REGISTRY_MARKERS = (
     "# pybase: generated module registrations - start",
@@ -57,7 +73,7 @@ def generate_module(project_root: Path, options: ModuleOptions) -> GenerationRes
     test_directory = project_root / "tests" / "modules" / module_name
     registry_path = project_root / "src" / "pybase" / "modules" / "registry.py"
     model_import_path = (
-        project_root / "src" / "pybase" / "infrastructure" / "database" / "models" / "__init__.py"
+            project_root / "src" / "pybase" / "infrastructure" / "database" / "models" / "__init__.py"
     )
 
     if module_directory.exists() and not module_directory.is_dir():
@@ -149,14 +165,14 @@ def _validate_options(project_root: Path, options: ModuleOptions) -> None:
 
 
 def _build_module_files(
-    *,
-    module_name: str,
-    module_class_name: str,
-    route_prefix: str,
-    table_name: str,
-    with_model: bool,
-    module_directory: Path,
-    test_directory: Path,
+        *,
+        module_name: str,
+        module_class_name: str,
+        route_prefix: str,
+        table_name: str,
+        with_model: bool,
+        module_directory: Path,
+        test_directory: Path,
 ) -> dict[Path, str]:
     values = {
         "module_name": module_name,
@@ -197,7 +213,7 @@ class ${module_class_name}Schema(BaseModel):
             values,
         ),
         module_directory / "service.py": _basic_service_content(values),
-        module_directory / "README.md": _render(
+        module_directory / "脚手架使用指南.md": _render(
             """# $module_class_name 模块
 
 ## 职责
@@ -414,12 +430,12 @@ def get_${module_name}_service(session: SessionDep) -> ${module_class_name}Servi
 
 
 def _upgrade_service(
-    *,
-    current_content: str,
-    module_name: str,
-    module_class_name: str,
-    force: bool,
-    path: Path,
+        *,
+        current_content: str,
+        module_name: str,
+        module_class_name: str,
+        force: bool,
+        path: Path,
 ) -> str:
     values = {"module_name": module_name, "module_class_name": module_class_name}
     database_service_content = _database_service_content(values)
@@ -464,11 +480,11 @@ def _legacy_basic_service_content(values: dict[str, str]) -> str:
 
 
 def _upsert_registry_entry(
-    *,
-    content: str,
-    module_name: str,
-    with_model: bool,
-    path: Path,
+        *,
+        content: str,
+        module_name: str,
+        with_model: bool,
+        path: Path,
 ) -> str:
     return _upsert_between_markers(
         content=content,
@@ -482,11 +498,11 @@ def _upsert_registry_entry(
 
 
 def _upsert_model_import(
-    *,
-    content: str,
-    module_name: str,
-    module_class_name: str,
-    path: Path,
+        *,
+        content: str,
+        module_name: str,
+        module_class_name: str,
+        path: Path,
 ) -> str:
     return _upsert_between_markers(
         content=content,
@@ -500,12 +516,12 @@ def _upsert_model_import(
 
 
 def _upsert_between_markers(
-    *,
-    content: str,
-    markers: tuple[str, str],
-    entry: str,
-    entry_pattern: str,
-    path: Path,
+        *,
+        content: str,
+        markers: tuple[str, str],
+        entry: str,
+        entry_pattern: str,
+        path: Path,
 ) -> str:
     start_index, end_index = _marker_indexes(content, markers, path)
     existing_block = content[start_index:end_index]
@@ -513,17 +529,17 @@ def _upsert_between_markers(
     if len(matches) > 1:
         raise GenerationError(f"发现重复的生成器注册项: {path}")
     if matches:
-        new_block = existing_block[: matches[0].start()] + entry + existing_block[matches[0].end() :]
+        new_block = existing_block[: matches[0].start()] + entry + existing_block[matches[0].end():]
     else:
         new_block = "\n" + entry + existing_block
     return content[:start_index] + new_block + content[end_index:]
 
 
 def _replace_between_markers(
-    content: str,
-    markers: tuple[str, str],
-    generated_content: str,
-    path: Path,
+        content: str,
+        markers: tuple[str, str],
+        generated_content: str,
+        path: Path,
 ) -> str:
     start_index, end_index = _marker_indexes(content, markers, path)
     indentation = _marker_indentation(content, markers[0])
@@ -550,10 +566,10 @@ def _marker_indentation(content: str, marker: str) -> str:
 
 
 def _plan_modified_file(
-    path: Path,
-    content: str,
-    modified_files: dict[Path, str],
-    unchanged_files: list[Path],
+        path: Path,
+        content: str,
+        modified_files: dict[Path, str],
+        unchanged_files: list[Path],
 ) -> None:
     if content == path.read_text(encoding="utf-8"):
         unchanged_files.append(path)

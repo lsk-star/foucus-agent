@@ -35,6 +35,7 @@ class DatabaseComponent(LifecycleComponent):
         self.session_factory = async_sessionmaker(self.engine, expire_on_commit=False)
         try:
             await self._check_connection()
+            logger.info("数据库连接成功")
         except Exception as exc:
             self._startup_error = str(exc)
             if self._settings.strict_startup:

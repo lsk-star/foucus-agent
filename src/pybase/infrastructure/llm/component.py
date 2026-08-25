@@ -4,6 +4,8 @@ from pybase.contracts.lifecycle import ReadinessStatus
 from pybase.core.config import LlmSettings
 from pybase.core.exceptions import ConfigurationError
 
+import logging
+logger = logging.getLogger(__name__)
 
 class LlmComponent:
     name = "llm"
@@ -16,6 +18,7 @@ class LlmComponent:
 
     async def start(self) -> None:
         # 根据 provider 创建对应的 LangChain ChatModel
+        logger.info(f"初始化 LLM 组件，provider: {self._settings.provider}")
         if self._settings.provider == "openai":
             from langchain_openai import ChatOpenAI
             self._chat_model = ChatOpenAI(

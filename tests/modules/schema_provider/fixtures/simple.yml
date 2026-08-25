@@ -1,0 +1,45 @@
+tables:
+  user:
+    description: 用户主表
+    columns:
+      user_id:   {type: int, comment: 用户ID, key: PRI, nullable: false}
+      username:  {type: varchar(50), comment: 用户名, key: UNI, nullable: false}
+      email:     {type: varchar(100), comment: 邮箱, nullable: false}
+
+  order:
+    description: 订单表
+    columns:
+      order_id:  {type: int, comment: 订单ID, key: PRI, nullable: false}
+      user_id:   {type: int, comment: 下单用户ID, key: MUL, nullable: false}
+      amount:    {type: "decimal(12,2)", comment: 订单金额, nullable: false}
+    foreignKeys:
+      - {column: user_id, refTable: user, refColumn: user_id}
+
+  order_item:
+    description: 订单明细表
+    columns:
+      item_id:   {type: int, comment: 明细ID, key: PRI, nullable: false}
+      order_id:  {type: int, comment: 所属订单ID, key: MUL, nullable: false}
+      product_id: {type: int, comment: 商品ID, key: MUL, nullable: false}
+      quantity:  {type: int, comment: 数量, nullable: false}
+    foreignKeys:
+      - {column: order_id, refTable: order, refColumn: order_id}
+      - {column: product_id, refTable: product, refColumn: product_id}
+
+  product:
+    description: 商品表
+    columns:
+      product_id: {type: int, comment: 商品ID, key: PRI, nullable: false}
+      name:      {type: varchar(100), comment: 商品名称, nullable: false}
+      price:     {type: "decimal(10,2)", comment: 单价, nullable: false}
+
+glossary:
+  - term: 近7天
+    description: 最近7个自然日
+    sqlFragment: "data_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
+    synonyms: [最近7天, 一周内]
+
+  - term: GMV
+    description: 成交金额
+    sqlFragment: "SUM(amount) AS gmv"
+    synonyms: [成交额, 销售额]

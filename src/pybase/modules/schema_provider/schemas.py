@@ -71,7 +71,6 @@ class TableEntry(BaseModel):
 
     name: str
     description: str
-    foreign_keys: list[FkDesc]
     related_tables: list[str]
 
 
@@ -82,3 +81,12 @@ class SchemaCatalog(BaseModel):
 
     tables: list[Table]
     glossary: list[GlossaryTerm]
+
+
+class LookupResult(BaseModel):
+    """查找结果，包含表定义或 None。"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    found: list[Table] | None = None
+    missing: list[str] | None = None
