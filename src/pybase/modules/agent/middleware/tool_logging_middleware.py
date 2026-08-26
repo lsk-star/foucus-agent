@@ -19,16 +19,16 @@ class ToolLoggingMiddleware(AgentMiddleware):
     """Record each asynchronous tool invocation at debug level."""
 
     async def awrap_tool_call(
-        self,
-        request: ToolCallRequest,
-        handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command[Any]]],
+            self,
+            request: ToolCallRequest,
+            handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command[Any]]],
     ) -> ToolMessage | Command[Any]:
         tool_name = request.tool_call["name"]
         tool_call_id = request.tool_call["id"]
         started_at = perf_counter()
 
         logger.info(
-            "Tool call started: name=%s id=%s args=%r",
+            "开始调用工具: name=%s id=%s args=%r",
             tool_name,
             tool_call_id,
             request.tool_call["args"],
@@ -43,12 +43,11 @@ class ToolLoggingMiddleware(AgentMiddleware):
                 (perf_counter() - started_at) * 1_000,
                 exc_info=True,
 
-
             )
             raise
 
         logger.info(
-            "Tool call completed: name=%s id=%s result=%r duration_ms=%.2f",
+            "工具调用完成: name=%s id=%s result=%r duration_ms=%.2f",
             tool_name,
             tool_call_id,
             result,

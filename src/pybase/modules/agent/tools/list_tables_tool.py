@@ -1,6 +1,6 @@
 from langchain_core.tools import tool
 
-from pybase.modules.schema_provider.schema_provider import SchemaProvider
+from pybase.modules.sql_processing.schema_provider import SchemaProvider
 
 
 def create_list_tables_tool(schema_provider: SchemaProvider):

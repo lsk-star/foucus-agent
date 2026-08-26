@@ -3,7 +3,7 @@ from typing import Annotated
 from langchain_core.tools import StructuredTool
 from pydantic import Field
 
-from pybase.modules.schema_provider.schemas import GlossaryTerm
+from pybase.modules.sql_processing.yaml_provider.schemas import GlossaryTerm
 
 # 【优化】 （术语过多导致上下文爆炸）
 # 1：两阶段加载，将此工具分为两个阶段：

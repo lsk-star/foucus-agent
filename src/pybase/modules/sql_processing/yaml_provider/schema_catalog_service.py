@@ -2,9 +2,8 @@ from pathlib import Path
 
 import yaml
 
-from pybase.modules.schema_provider.schemas import (
+from pybase.modules.sql_processing.yaml_provider.schemas import (
     Column,
-    FkDesc,
     ForeignKey,
     GlossaryTerm,
     SchemaCatalog,

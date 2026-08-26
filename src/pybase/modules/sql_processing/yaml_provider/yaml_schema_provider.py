@@ -1,6 +1,6 @@
-from pybase.modules.schema_provider.yaml_provider.schema_catalog_service import SchemaCatalogService
-from pybase.modules.schema_provider.schema_provider import SchemaProvider
-from pybase.modules.schema_provider.schemas import Table
+from pybase.modules.sql_processing.yaml_provider.schema_catalog_service import SchemaCatalogService
+from pybase.modules.sql_processing.schema_provider import SchemaProvider
+from pybase.modules.sql_processing.yaml_provider.schemas import Table
 
 
 class YamlSchemaProvider(SchemaProvider):

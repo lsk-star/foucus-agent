@@ -5,6 +5,8 @@ description = "A modular, extensible FastAPI backend scaffold"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "acryl-sqlglot>=25.25.2.dev9",
+    "datahub>=0.999.1",
     "fastapi>=0.116,<1.0",
     "pydantic-settings>=2.10,<3.0",
     "python-multipart>=0.0.32",

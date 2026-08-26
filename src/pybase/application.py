@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 def _build_components(settings: Settings) -> ComponentRegistry:
     registry = ComponentRegistry()
     if settings.schema_provider.source == "yaml":
-        from pybase.modules.schema_provider.yaml_provider.component import SchemaCatalogComponent
+        from pybase.modules.sql_processing.yaml_provider.component import SchemaCatalogComponent
         registry.add(SchemaCatalogComponent())
     if settings.database.enabled:
         try:

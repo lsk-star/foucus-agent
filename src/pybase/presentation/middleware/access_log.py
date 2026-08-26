@@ -67,18 +67,18 @@ class AccessLogMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
         except Exception:
             access_logger.exception(
-                "响应异常 method=%s path=%s duration_ms=%.2f ms",
+                "响应异常 method=%s path=%s duration=%.4f s",
                 request.method,
                 request.url.path,
-                (perf_counter() - started_at) * 1000,
+                perf_counter() - started_at,
             )
             raise
 
         access_logger.info(
-            "响应 method=%s path=%s status_code=%s duration_ms=%.2f ms",
+            "响应 method=%s path=%s status_code=%s duration=%.4f s",
             request.method,
             request.url.path,
             response.status_code,
-            (perf_counter() - started_at) * 1000,
+            perf_counter() - started_at,
         )
         return response

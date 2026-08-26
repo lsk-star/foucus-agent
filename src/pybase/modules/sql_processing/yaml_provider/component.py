@@ -1,7 +1,7 @@
 import logging
 
 from pybase.contracts.lifecycle import ReadinessStatus, LifecycleComponent
-from pybase.modules.schema_provider.yaml_provider.schema_catalog_service import SchemaCatalogService
+from pybase.modules.sql_processing.yaml_provider.schema_catalog_service import SchemaCatalogService
 
 logger = logging.getLogger(__name__)
 
