@@ -16,14 +16,15 @@ from pybase.modules.sql_processing.yaml_provider.schemas import GlossaryTerm
 
 # 3：提前将术语向量存储，每次查询时进行检索
 
+
+# （sakila 是历史样本库，所有相对时间必须基于 MAX(rental_date) 而非 NOW()）
 TOOL_DESCRIPTION_TEMPLATE = """
 查询业务术语的标准口径（含定义 + 可复用 SQL 片段 + 同义词）。
             
             何时使用本工具：
             - 用户问题涉及"活跃客户""VIP""热门影片""高消费客户""租金"等业务指标术语时
             - 用户问题涉及"近 N 个月""最近""本月""上月""今年"等相对时间时
-              （sakila 是历史样本库，所有相对时间必须基于 MAX(rental_date) 而非 NOW()）
-            
+              
             <可用术语列表>
             {terms}
             </可用术语列表>

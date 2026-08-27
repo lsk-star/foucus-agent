@@ -26,7 +26,7 @@ def upgrade() -> None:
     sa.Column('description', sa.String(length=3000), server_default='', nullable=False, comment='技能描述'),
     sa.Column('enabled', sa.Boolean(), server_default='1', nullable=False, comment='是否启用'),
     sa.Column('file_name', sa.String(length=255), nullable=True, comment='文件名'),
-    sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False, comment='主键ID'),
+    sa.Column('id', sa.BigInteger(), sa.Identity(), nullable=False, comment='主键ID'),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True, comment='创建时间'),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True, comment='修改时间'),
     sa.PrimaryKeyConstraint('id'),

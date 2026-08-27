@@ -6,6 +6,8 @@ from langchain_core.language_models import BaseChatModel
 from pybase.core.exceptions import DependencyUnavailableError
 from pybase.infrastructure.llm.component import LlmComponent
 from pybase.infrastructure.llm.dependencies import get_llm_component
+from pybase.modules.account.data_access_guard import DataAccessGuard
+from pybase.modules.account.dependencies import get_data_access_guard
 from pybase.modules.sql_processing.dependencies import get_schema_provider, get_schema_catalog_service, get_sql_safety_guard, get_explain_precheck_service, get_read_only_runner
 from pybase.modules.sql_processing.explain_precheck_service import ExplainPrecheckService
 from pybase.modules.sql_processing.read_only_runner import ReadOnlyQueryRunner
@@ -35,10 +37,14 @@ async def get_agent_service(
         guard: SqlSafetyGuard = Depends(get_sql_safety_guard),
         precheck_service: ExplainPrecheckService = Depends(get_explain_precheck_service),
         runner: ReadOnlyQueryRunner = Depends(get_read_only_runner),
+        data_access_guard: DataAccessGuard = Depends(get_data_access_guard),
 ):
     from pybase.modules.agent.service import AgentService
 
-    return AgentService(chat_model, skill_loader, service, schema_provider, catalog_service, guard, precheck_service, runner)
+    return AgentService(
+        chat_model, skill_loader, service, schema_provider,
+        catalog_service, guard, precheck_service, runner, data_access_guard,
+    )
 
 
 ChatModelDep = Annotated[BaseChatModel, Depends(get_chat_model)]

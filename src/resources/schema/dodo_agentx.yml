@@ -3,392 +3,439 @@
 # 与 sql/ad_platform_v2.sql 保持一致。
 
 tables:
-  brand:
-    description: 虚构品牌主数据。用于按品牌汇总广告表现；品牌与广告账户是一对多关系。
+  app_user:
+    description: 营销分析系统的登录用户，不是广告触达用户。
     columns:
-      brand_id:          {type: int, comment: 品牌主键ID, key: PRI, nullable: false}
-      brand_name:        {type: varchar(50), comment: 虚构品牌名称, key: UNI, nullable: false}
-      industry:          {type: varchar(30), comment: 所属行业, nullable: false}
-      category:          {type: varchar(50), comment: 主营类目, nullable: false}
-      account_manager:   {type: varchar(30), comment: 模拟运营负责人, nullable: false}
-      cooperation_start: {type: date, comment: 模拟合作开始日期, nullable: false}
-      status:            {type: tinyint, comment: 合作状态：1合作中，0暂停, nullable: false}
+      id: { type: bigint unsigned, comment: 主键ID, key: PRI, nullable: false }
+      username: { type: varchar(64), comment: 登录账号, key: UNI, nullable: false }
+      password_hash: { type: varchar(255), comment: 仅存 Argon2/bcrypt 哈希，绝不存明文密码, nullable: false }
+      real_name: { type: varchar(64), comment: 真实姓名, nullable: false }
+      mobile: { type: varchar(32), comment: 手机号, nullable: true }
+      email: { type: varchar(128), comment: 邮箱, nullable: true }
+      avatar_url: { type: varchar(500), comment: 头像URL, nullable: true }
+      job_title: { type: varchar(64), comment: 如投放优化师、运营负责人, nullable: true }
+      status: { type: "enum('ACTIVE', 'DISABLED')", comment: 状态, nullable: false }
+      last_login_at: { type: datetime, comment: 最后登录时间, nullable: true }
+      created_at: { type: datetime, comment: 创建时间, nullable: false }
+      updated_at: { type: datetime, comment: 更新时间, nullable: false }
 
-  platform:
-    description: 广告平台维度。第一版仅包含京东，表结构保留后续平台扩展能力。
+  marketing_channel:
+    description: 广告渠道，如巨量引擎、腾讯广告、Google Ads。
     columns:
-      platform_id:   {type: int, comment: 平台主键ID, key: PRI, nullable: false}
-      platform_name: {type: varchar(20), comment: 平台名称，当前为京东, key: UNI, nullable: false}
-      platform_type: {type: varchar(20), comment: 平台类型，当前为电商平台, nullable: false}
-
-  ad_product:
-    description: 京东广告产品维度，包含京东快车、购物触点、京东海投、京东展位、直投和京速推。
-    columns:
-      product_id:   {type: int, comment: 广告产品主键ID, key: PRI, nullable: false}
-      platform_id:  {type: int, comment: 所属平台ID，关联platform.platform_id, key: MUL, nullable: false}
-      product_name: {type: varchar(30), comment: 广告产品名称, key: UNI, nullable: false}
-      product_type: {type: varchar(20), comment: 搜索广告/推荐广告/品牌广告/智能投放/定向广告, nullable: false}
-      charge_mode:  {type: varchar(10), comment: 计费方式：CPC或CPM, nullable: false}
-    foreignKeys:
-      - {column: platform_id, refTable: platform, refColumn: platform_id}
+      id: { type: bigint unsigned, comment: 主键ID, key: PRI, nullable: false }
+      channel_code: { type: varchar(64), comment: 渠道编码, key: UNI, nullable: false }
+      channel_name: { type: varchar(128), comment: 渠道名称, nullable: false }
+      status: { type: "enum('ACTIVE', 'INACTIVE')", comment: 状态, nullable: false }
+      created_at: { type: datetime, comment: 创建时间, nullable: false }
 
   ad_account:
-    description: 广告账户与店铺主数据。品牌可能有旗舰店、自营店等多个京东广告账户，是数据权限和账户分析的基础维度。
+    description: 广告平台账户，也是数据权限最小单元。
     columns:
-      account_id:   {type: int, comment: 广告账户主键ID, key: PRI, nullable: false}
-      account_name: {type: varchar(80), comment: 广告账户显示名称, nullable: false}
-      account_code: {type: varchar(50), comment: 虚构账户编码, key: UNI, nullable: false}
-      brand_id:     {type: int, comment: 所属品牌ID，关联brand.brand_id, key: MUL, nullable: false}
-      platform_id:  {type: int, comment: 所属平台ID，关联platform.platform_id, key: MUL, nullable: false}
-      shop_name:    {type: varchar(80), comment: 店铺名称, nullable: false}
-      account_type: {type: varchar(20), comment: 旗舰店/自营店/专卖店, nullable: false}
-      status:       {type: tinyint, comment: 账户状态：1启用，0停用, nullable: false}
-    foreignKeys:
-      - {column: brand_id, refTable: brand, refColumn: brand_id}
-      - {column: platform_id, refTable: platform, refColumn: platform_id}
+      id: { type: bigint unsigned, comment: 主键ID, key: PRI, nullable: false }
+      channel_id: { type: bigint unsigned, comment: 渠道ID, key: MUL, nullable: false }
+      platform_account_id: { type: varchar(128), comment: 广告平台侧账户 ID, nullable: false }
+      account_name: { type: varchar(255), comment: 账户名称, nullable: false }
+      currency_code: { type: char(3), comment: 货币代码, nullable: false }
+      status: { type: "enum('ACTIVE', 'PAUSED', 'DISABLED')", comment: 状态, nullable: false }
+      created_at: { type: datetime, comment: 创建时间, nullable: false }
+      updated_at: { type: datetime, comment: 更新时间, nullable: false }
+
+  user_ad_account:
+    description: 用户可访问的广告账户；一个用户可拥有多个账户。
+    columns:
+      app_user_id: { type: bigint unsigned, comment: 应用用户ID, key: PRI, nullable: false }
+      ad_account_id: { type: bigint unsigned, comment: 广告账户ID, key: PRI, nullable: false }
+      role: { type: "enum('OWNER', 'ANALYST', 'OPERATOR', 'VIEWER')", comment: 角色, nullable: false }
+      granted_at: { type: datetime, comment: 授权时间, nullable: false }
+      expires_at: { type: datetime, comment: 过期时间, nullable: true }
 
   campaign:
-    description: 广告投放计划。一个账户可以创建多个计划，每个计划对应一个广告产品，并配置日预算、目标和投放周期。
+    description: 广告计划 Campaign。
     columns:
-      campaign_id:   {type: int, comment: 计划主键ID, key: PRI, nullable: false}
-      campaign_name: {type: varchar(150), comment: 投放计划名称, nullable: false}
-      account_id:    {type: int, comment: 所属广告账户ID，关联ad_account.account_id, key: MUL, nullable: false}
-      product_id:    {type: int, comment: 广告产品ID，关联ad_product.product_id, key: MUL, nullable: false}
-      objective:     {type: varchar(30), comment: 日常销售/新品推广/大促冲量/品牌曝光/竞品拦截, nullable: false}
-      day_budget:    {type: "decimal(12,2)", comment: 当前日预算，单位元, nullable: false}
-      total_budget:  {type: "decimal(14,2)", comment: 计划总预算，NULL表示不设总预算}
-      start_date:    {type: date, comment: 计划开始日期, nullable: false}
-      end_date:      {type: date, comment: 计划结束日期，NULL表示长期投放}
-      status:        {type: tinyint, comment: 计划状态：1投放中，0暂停, nullable: false}
-      creator:       {type: varchar(30), comment: 模拟创建人, nullable: false}
-    foreignKeys:
-      - {column: account_id, refTable: ad_account, refColumn: account_id}
-      - {column: product_id, refTable: ad_product, refColumn: product_id}
+      id: { type: bigint unsigned, comment: 主键ID, key: PRI, nullable: false }
+      account_id: { type: bigint unsigned, comment: 广告账户ID, key: MUL, nullable: false }
+      platform_campaign_id: { type: varchar(128), comment: 平台侧广告计划ID, nullable: false }
+      campaign_name: { type: varchar(255), comment: 广告计划名称, nullable: false }
+      objective: { type: varchar(64), comment: 营销目标：TRAFFIC、LEAD、SALES 等, nullable: true }
+      optimization_goal: { type: varchar(64), comment: 优化目标：CLICK、PURCHASE、FORM_SUBMIT 等, nullable: true }
+      daily_budget: { type: decimal(18,2), comment: 日预算, nullable: true }
+      status: { type: "enum('ACTIVE', 'PAUSED', 'ENDED', 'DELETED')", comment: 状态, nullable: false }
+      start_date: { type: date, comment: 开始日期, nullable: true }
+      end_date: { type: date, comment: 结束日期, nullable: true }
+      created_at: { type: datetime, comment: 创建时间, nullable: false }
+      updated_at: { type: datetime, comment: 更新时间, nullable: false }
 
   ad_group:
-    description: 广告单元。计划下的具体投放单元，可设置关键词、人群或智能定向以及出价策略。
+    description: 广告组，配置定向、出价与人群。
     columns:
-      ad_group_id:    {type: int, comment: 广告单元主键ID, key: PRI, nullable: false}
-      ad_group_name:  {type: varchar(150), comment: 广告单元名称, nullable: false}
-      campaign_id:    {type: int, comment: 所属计划ID，关联campaign.campaign_id, key: MUL, nullable: false}
-      targeting_type: {type: varchar(30), comment: 关键词精准/关键词广泛/人群定向/智能定向/类目定向, nullable: false}
-      bid_strategy:   {type: varchar(30), comment: 手动出价/目标ROI/最大化转化/自动出价, nullable: false}
-      bid_price:      {type: "decimal(8,2)", comment: CPC出价或目标成本参数}
-      status:         {type: tinyint, comment: 单元状态：1投放中，0暂停, nullable: false}
-    foreignKeys:
-      - {column: campaign_id, refTable: campaign, refColumn: campaign_id}
-
-  creative:
-    description: 广告创意素材。一个广告单元可以挂载多个主图、场景图、短视频或文字链素材。
-    columns:
-      creative_id:   {type: int, comment: 创意主键ID, key: PRI, nullable: false}
-      creative_name: {type: varchar(150), comment: 创意名称, nullable: false}
-      ad_group_id:   {type: int, comment: 所属广告单元ID，关联ad_group.ad_group_id, key: MUL, nullable: false}
-      creative_type: {type: varchar(20), comment: 主图/场景图/短视频/文字链, nullable: false}
-      material_size: {type: varchar(30), comment: 素材尺寸或视频时长}
-      create_date:   {type: date, comment: 创意创建日期, nullable: false}
-      status:        {type: tinyint, comment: 创意状态：1启用，0停用, nullable: false}
-    foreignKeys:
-      - {column: ad_group_id, refTable: ad_group, refColumn: ad_group_id}
-
-  keyword_info:
-    description: 京东快车关键词主数据。仅搜索快车计划包含关键词，记录匹配方式、出价和模拟质量分。
-    columns:
-      keyword_id:    {type: int, comment: 关键词主键ID, key: PRI, nullable: false}
-      ad_group_id:   {type: int, comment: 所属广告单元ID，关联ad_group.ad_group_id, key: MUL, nullable: false}
-      keyword_text:  {type: varchar(100), comment: 关键词文本, key: MUL, nullable: false}
-      match_type:    {type: varchar(20), comment: 精确匹配/短语匹配/广泛匹配, nullable: false}
-      bid_price:     {type: "decimal(8,2)", comment: 关键词出价，单位元, nullable: false}
-      quality_score: {type: "decimal(4,1)", comment: 模拟质量分，范围0至10, nullable: false}
-      status:        {type: tinyint, comment: 关键词状态：1启用，0暂停, nullable: false}
-    foreignKeys:
-      - {column: ad_group_id, refTable: ad_group, refColumn: ad_group_id}
+      id: { type: bigint unsigned, comment: 主键ID, key: PRI, nullable: false }
+      campaign_id: { type: bigint unsigned, comment: 广告计划ID, key: MUL, nullable: false }
+      platform_ad_group_id: { type: varchar(128), comment: 平台侧广告组ID, nullable: false }
+      ad_group_name: { type: varchar(255), comment: 广告组名称, nullable: false }
+      targeting_type: { type: "enum('AUTO', 'MANUAL', 'AUDIENCE')", comment: 定向类型, nullable: true }
+      bid_strategy: { type: varchar(64), comment: 如 LOWEST_COST、TARGET_CPA, nullable: true }
+      bid_amount: { type: decimal(18,4), comment: 出价金额, nullable: true }
+      status: { type: "enum('ACTIVE', 'PAUSED', 'ENDED', 'DELETED')", comment: 状态, nullable: false }
+      created_at: { type: datetime, comment: 创建时间, nullable: false }
+      updated_at: { type: datetime, comment: 更新时间, nullable: false }
 
   audience_package:
-    description: 广告定向人群包。来源于数坊、京腾魔方或DMP，可被触点、直投等计划用于人群定向。
+    description: 广告定向使用的人群包。
     columns:
-      package_id:    {type: int, comment: 人群包主键ID, key: PRI, nullable: false}
-      package_name:  {type: varchar(100), comment: 人群包名称, nullable: false}
-      account_id:    {type: int, comment: 所属广告账户ID，关联ad_account.account_id, key: MUL, nullable: false}
-      audience_type: {type: varchar(30), comment: 品牌人群/品类兴趣/竞品人群/相似扩展/老客复购, nullable: false}
-      source:        {type: varchar(20), comment: 数坊/京腾魔方/DMP, nullable: false}
-      estimated_uv:  {type: bigint, comment: 预估覆盖人数, nullable: false}
-      create_date:   {type: date, comment: 创建日期, nullable: false}
-      expire_date:   {type: date, comment: 过期日期}
-      status:        {type: tinyint, comment: 人群包状态：1生效，0停用, nullable: false}
-    foreignKeys:
-      - {column: account_id, refTable: ad_account, refColumn: account_id}
+      id: { type: bigint unsigned, comment: 主键ID, key: PRI, nullable: false }
+      package_id: { type: varchar(128), comment: 系统人群包编码, key: UNI, nullable: false }
+      account_id: { type: bigint unsigned, comment: 广告账户ID, nullable: false }
+      platform_package_id: { type: varchar(128), comment: 平台侧人群包ID, nullable: true }
+      package_name: { type: varchar(255), comment: 人群包名称, nullable: false }
+      package_type: { type: "enum('DMP', 'CUSTOM', 'LOOKALIKE', 'INTEREST', 'RETARGETING', 'EXCLUSION', 'AUTO')", comment: 人群包类型, nullable: false }
+      source_platform: { type: varchar(64), comment: 数坊、京腾魔方、DMP、平台人群中心, nullable: true }
+      estimated_size: { type: bigint unsigned, comment: 预估人群规模, nullable: true }
+      definition_json: { type: json, comment: 人群定义JSON, nullable: true }
+      status: { type: tinyint, comment: 1有效，0失效, nullable: false }
+      created_at: { type: datetime, comment: 创建时间, nullable: false }
 
   ad_group_audience_relation:
-    description: 广告单元与人群包绑定关系。用于查询某个计划或广告单元实际使用了哪些定向人群及其溢价系数；仅记录关系，不代表Agent可创建或修改人群绑定。
+    description: 广告单元与定向人群包的绑定关系。
     columns:
-      relation_id:     {type: bigint, comment: 关系主键ID, key: PRI, nullable: false}
-      ad_group_id:     {type: int, comment: 广告单元ID，关联ad_group.ad_group_id, key: MUL, nullable: false}
-      package_id:      {type: int, comment: 人群包ID，关联audience_package.package_id, key: MUL, nullable: false}
-      bid_coefficient: {type: "decimal(5,2)", comment: 人群溢价系数，例如1.20表示基础出价的1.2倍, nullable: false}
-      bind_time:       {type: datetime, comment: 绑定时间, nullable: false}
-      status:          {type: tinyint, comment: 绑定状态：1生效，0停用, nullable: false}
-    foreignKeys:
-      - {column: ad_group_id, refTable: ad_group, refColumn: ad_group_id}
-      - {column: package_id, refTable: audience_package, refColumn: package_id}
+      id: { type: bigint unsigned, comment: 主键ID, key: PRI, nullable: false }
+      ad_group_id: { type: bigint unsigned, comment: 广告组ID, nullable: false }
+      package_id: { type: varchar(128), comment: 人群包ID, nullable: false }
+      usage_type: { type: "enum('INCLUDE', 'EXCLUDE')", comment: 使用类型，包含或排除, nullable: false }
+      status: { type: tinyint, comment: 1有效，0解绑或失效, nullable: false }
+      bound_at: { type: datetime, comment: 绑定时间, nullable: false }
+
+  creative:
+    description: 创意素材库。
+    columns:
+      id: { type: bigint unsigned, comment: 主键ID, key: PRI, nullable: false }
+      creative_code: { type: varchar(128), comment: 创意编码, key: UNI, nullable: false }
+      creative_name: { type: varchar(255), comment: 创意名称, nullable: false }
+      creative_type: { type: "enum('IMAGE', 'VIDEO', 'CAROUSEL', 'TEXT', 'LIVE', 'OTHER')", comment: 创意类型, nullable: false }
+      title: { type: varchar(500), comment: 标题, nullable: true }
+      body_text: { type: text, comment: 正文, nullable: true }
+      material_url: { type: text, comment: 素材URL, nullable: true }
+      created_at: { type: datetime, comment: 创建时间, nullable: false }
+      updated_at: { type: datetime, comment: 更新时间, nullable: false }
+
+  ad:
+    description: 具体广告对象。
+    columns:
+      id: { type: bigint unsigned, comment: 主键ID, key: PRI, nullable: false }
+      ad_group_id: { type: bigint unsigned, comment: 广告组ID, key: MUL, nullable: false }
+      platform_ad_id: { type: varchar(128), comment: 平台侧广告ID, nullable: false }
+      ad_name: { type: varchar(255), comment: 广告名称, nullable: false }
+      landing_page_url: { type: text, comment: 落地页URL, nullable: true }
+      status: { type: "enum('ACTIVE', 'PAUSED', 'ENDED', 'DELETED')", comment: 状态, nullable: false }
+      created_at: { type: datetime, comment: 创建时间, nullable: false }
+      updated_at: { type: datetime, comment: 更新时间, nullable: false }
+
+  ad_creative:
+    description: 广告与素材的多对多关系。
+    columns:
+      ad_id: { type: bigint unsigned, comment: 广告ID, key: PRI, nullable: false }
+      creative_id: { type: bigint unsigned, comment: 创意ID, key: PRI, nullable: false }
+      is_primary: { type: tinyint(1), comment: 是否为主素材, nullable: false }
 
   ad_performance_daily:
-    description: 核心广告效果日报，粒度为日期加广告单元。按计划、账户、品牌或渠道汇总时使用此表；不得再与创意或关键词日报直接累加。
+    description: 广告平台日报核心事实表。
     columns:
-      id:                  {type: bigint, comment: 主键ID, key: PRI, nullable: false}
-      data_date:           {type: date, comment: 数据日期, key: MUL, nullable: false}
-      account_id:          {type: int, comment: 广告账户ID，关联ad_account.account_id, key: MUL, nullable: false}
-      product_id:          {type: int, comment: 广告产品ID，关联ad_product.product_id, key: MUL, nullable: false}
-      campaign_id:         {type: int, comment: 计划ID，关联campaign.campaign_id, key: MUL, nullable: false}
-      ad_group_id:         {type: int, comment: 广告单元ID，关联ad_group.ad_group_id, key: MUL, nullable: false}
-      impressions:         {type: bigint, comment: 展现量，可SUM汇总, nullable: false}
-      clicks:              {type: bigint, comment: 点击量，可SUM汇总, nullable: false}
-      cost:                {type: "decimal(14,2)", comment: 广告消耗，单位元，可SUM汇总, nullable: false}
-      orders_direct:       {type: int, comment: 直接成交订单数，可SUM汇总, nullable: false}
-      gmv_direct:          {type: "decimal(14,2)", comment: 直接成交GMV，单位元，可SUM汇总, nullable: false}
-      orders_7d:           {type: int, comment: 7日归因订单数，可SUM汇总, nullable: false}
-      gmv_7d:              {type: "decimal(14,2)", comment: 7日归因GMV，单位元，可SUM汇总, nullable: false}
-      add_to_cart:         {type: int, comment: 加购次数，可SUM汇总, nullable: false}
-      favorites:           {type: int, comment: 收藏次数，可SUM汇总, nullable: false}
-      new_customer_orders: {type: int, comment: 新客订单数，可SUM汇总, nullable: false}
-      budget_snapshot:     {type: "decimal(12,2)", comment: 当日计划预算快照，不能跨单元直接SUM, nullable: false}
-    foreignKeys:
-      - {column: account_id, refTable: ad_account, refColumn: account_id}
-      - {column: product_id, refTable: ad_product, refColumn: product_id}
-      - {column: campaign_id, refTable: campaign, refColumn: campaign_id}
-      - {column: ad_group_id, refTable: ad_group, refColumn: ad_group_id}
+      id: { type: bigint unsigned, comment: 主键ID, key: PRI, nullable: false }
+      stat_date: { type: date, comment: 统计日期, nullable: false }
+      account_id: { type: bigint unsigned, comment: 广告账户ID, nullable: false }
+      campaign_id: { type: bigint unsigned, comment: 广告计划ID, nullable: false }
+      ad_group_id: { type: bigint unsigned, comment: 广告组ID, nullable: false }
+      ad_id: { type: bigint unsigned, comment: 广告ID, nullable: false }
+      creative_id: { type: bigint unsigned, comment: 创意ID, nullable: true }
+      audience_id: { type: bigint unsigned, comment: 人群包ID, nullable: true }
+      placement_code: { type: varchar(64), comment: 广告位代码, nullable: false }
+      region_code: { type: varchar(64), comment: 地域代码, nullable: false }
+      age_group: { type: varchar(32), comment: 年龄段, nullable: false }
+      gender: { type: varchar(16), comment: 性别, nullable: false }
+      device_type: { type: varchar(32), comment: 设备类型, nullable: false }
+      cost: { type: decimal(18,2), comment: 花费, nullable: false }
+      impressions: { type: bigint unsigned, comment: 曝光量, nullable: false }
+      clicks: { type: bigint unsigned, comment: 点击量, nullable: false }
+      platform_conversions: { type: decimal(18,4), comment: 平台转化量, nullable: false }
+      platform_conversion_value: { type: decimal(18,2), comment: 平台转化价值, nullable: false }
+      currency_code: { type: char(3), comment: 货币代码, nullable: false }
+      source_updated_at: { type: datetime, comment: 源数据更新时间, nullable: true }
+      created_at: { type: datetime, comment: 创建时间, nullable: false }
+      updated_at: { type: datetime, comment: 更新时间, nullable: false }
 
-  creative_performance_daily:
-    description: 创意效果日报，粒度为日期加创意。只用于创意维度分析；不能与ad_performance_daily同时汇总同一指标，否则会重复计算。
+  customer:
+    description: 实际到达企业站点的匿名访客或客户。
     columns:
-      id:            {type: bigint, comment: 主键ID, key: PRI, nullable: false}
-      data_date:     {type: date, comment: 数据日期, key: MUL, nullable: false}
-      creative_id:   {type: int, comment: 创意ID，关联creative.creative_id, key: MUL, nullable: false}
-      ad_group_id:   {type: int, comment: 广告单元ID，关联ad_group.ad_group_id, key: MUL, nullable: false}
-      campaign_id:   {type: int, comment: 计划ID，关联campaign.campaign_id, key: MUL, nullable: false}
-      impressions:   {type: bigint, comment: 展现量, nullable: false}
-      clicks:        {type: bigint, comment: 点击量, nullable: false}
-      cost:          {type: "decimal(14,2)", comment: 广告消耗，单位元, nullable: false}
-      orders_direct: {type: int, comment: 直接成交订单数, nullable: false}
-      gmv_direct:    {type: "decimal(14,2)", comment: 直接成交GMV，单位元, nullable: false}
-      orders_7d:     {type: int, comment: 7日归因订单数, nullable: false}
-      gmv_7d:        {type: "decimal(14,2)", comment: 7日归因GMV，单位元, nullable: false}
-    foreignKeys:
-      - {column: creative_id, refTable: creative, refColumn: creative_id}
-      - {column: ad_group_id, refTable: ad_group, refColumn: ad_group_id}
-      - {column: campaign_id, refTable: campaign, refColumn: campaign_id}
+      id: { type: bigint unsigned, comment: 主键ID, key: PRI, nullable: false }
+      anonymous_id: { type: char(64), comment: 埋点生成的匿名访客标识或哈希标识, key: UNI, nullable: true }
+      crm_customer_id: { type: varchar(128), comment: CRM 客户 ID, key: UNI, nullable: true }
+      first_seen_at: { type: datetime, comment: 首次发现时间, nullable: true }
+      created_at: { type: datetime, comment: 创建时间, nullable: false }
 
-  keyword_performance_daily:
-    description: 京东快车关键词效果日报，粒度为日期加关键词。只用于关键词维度分析；不能与核心日报同时汇总同一指标。
+  ad_touchpoint:
+    description: 企业埋点收到的广告曝光、点击或浏览触点。
     columns:
-      id:            {type: bigint, comment: 主键ID, key: PRI, nullable: false}
-      data_date:     {type: date, comment: 数据日期, key: MUL, nullable: false}
-      keyword_id:    {type: int, comment: 关键词ID，关联keyword_info.keyword_id, key: MUL, nullable: false}
-      ad_group_id:   {type: int, comment: 广告单元ID，关联ad_group.ad_group_id, key: MUL, nullable: false}
-      campaign_id:   {type: int, comment: 计划ID，关联campaign.campaign_id, key: MUL, nullable: false}
-      impressions:   {type: bigint, comment: 展现量, nullable: false}
-      clicks:        {type: bigint, comment: 点击量, nullable: false}
-      cost:          {type: "decimal(14,2)", comment: 广告消耗，单位元, nullable: false}
-      orders_direct: {type: int, comment: 直接成交订单数, nullable: false}
-      gmv_direct:    {type: "decimal(14,2)", comment: 直接成交GMV，单位元, nullable: false}
-      orders_7d:     {type: int, comment: 7日归因订单数, nullable: false}
-      gmv_7d:        {type: "decimal(14,2)", comment: 7日归因GMV，单位元, nullable: false}
-    foreignKeys:
-      - {column: keyword_id, refTable: keyword_info, refColumn: keyword_id}
-      - {column: ad_group_id, refTable: ad_group, refColumn: ad_group_id}
-      - {column: campaign_id, refTable: campaign, refColumn: campaign_id}
+      id: { type: bigint unsigned, comment: 主键ID, key: PRI, nullable: false }
+      customer_id: { type: bigint unsigned, comment: 客户ID, nullable: true }
+      occurred_at: { type: datetime, comment: 发生时间, nullable: false }
+      touch_type: { type: "enum('IMPRESSION', 'CLICK', 'VIEW')", comment: 触点类型, nullable: false }
+      account_id: { type: bigint unsigned, comment: 广告账户ID, nullable: true }
+      campaign_id: { type: bigint unsigned, comment: 广告计划ID, nullable: true }
+      ad_group_id: { type: bigint unsigned, comment: 广告组ID, nullable: true }
+      ad_id: { type: bigint unsigned, comment: 广告ID, nullable: true }
+      creative_id: { type: bigint unsigned, comment: 创意ID, nullable: true }
+      platform_click_id: { type: varchar(255), comment: 平台点击ID, nullable: true }
+      created_at: { type: datetime, comment: 创建时间, nullable: false }
 
-  budget_change_log:
-    description: 计划预算变更日志，记录人工调整和分时预算任务产生的预算变化。仅用于分析预算变化，不代表Agent可执行预算修改。
+  conversion_event:
+    description: 企业确认的原始转化事件。
     columns:
-      change_id:     {type: bigint, comment: 变更记录主键ID, key: PRI, nullable: false}
-      campaign_id:   {type: int, comment: 计划ID，关联campaign.campaign_id, key: MUL, nullable: false}
-      before_budget: {type: "decimal(12,2)", comment: 调整前日预算，单位元, nullable: false}
-      after_budget:  {type: "decimal(12,2)", comment: 调整后日预算，单位元, nullable: false}
-      change_source: {type: varchar(20), comment: 人工调整/分时预算任务, nullable: false}
-      reason:        {type: varchar(120), comment: 调整原因, nullable: false}
-      operator_name: {type: varchar(30), comment: 模拟操作人或任务名称, nullable: false}
-      change_time:   {type: datetime, comment: 调整时间, key: MUL, nullable: false}
-    foreignKeys:
-      - {column: campaign_id, refTable: campaign, refColumn: campaign_id}
+      id: { type: bigint unsigned, comment: 主键ID, key: PRI, nullable: false }
+      customer_id: { type: bigint unsigned, comment: 客户ID, nullable: true }
+      event_id: { type: varchar(128), comment: 事件ID, key: UNI, nullable: false }
+      event_type: { type: "enum('LEAD', 'REGISTER', 'ADD_TO_CART', 'PURCHASE', 'OTHER')", comment: 事件类型, nullable: false }
+      occurred_at: { type: datetime, comment: 发生时间, nullable: false }
+      event_value: { type: decimal(18,2), comment: 事件价值, nullable: false }
+      currency_code: { type: char(3), comment: 货币代码, nullable: true }
+      source_system: { type: varchar(64), comment: 来源系统，如WEB、APP、CRM、OMS, nullable: false }
+      created_at: { type: datetime, comment: 创建时间, nullable: false }
+
+  attribution_result:
+    description: 转化事件与广告触点之间的归因结果。
+    columns:
+      id: { type: bigint unsigned, comment: 主键ID, key: PRI, nullable: false }
+      conversion_event_id: { type: bigint unsigned, comment: 转化事件ID, nullable: false }
+      touchpoint_id: { type: bigint unsigned, comment: 触点ID, nullable: false }
+      attribution_model: { type: "enum('LAST_CLICK', 'LAST_NON_DIRECT_CLICK', 'FIRST_CLICK', 'LINEAR', 'PLATFORM_REPORTED')", comment: 归因模型, nullable: false }
+      click_window_days: { type: smallint unsigned, comment: 点击归因窗口期（天）, nullable: false }
+      view_window_days: { type: smallint unsigned, comment: 浏览归因窗口期（天）, nullable: false }
+      credit: { type: decimal(9,6), comment: 归因权重, nullable: false }
+      attributed_value: { type: decimal(18,2), comment: 归因价值, nullable: false }
+      created_at: { type: datetime, comment: 创建时间, nullable: false }
+
+  sales_order:
+    description: 企业订单事实；净收入=支付金额-退款金额。
+    columns:
+      id: { type: bigint unsigned, comment: 主键ID, key: PRI, nullable: false }
+      customer_id: { type: bigint unsigned, comment: 客户ID, nullable: true }
+      conversion_event_id: { type: bigint unsigned, comment: 转化事件ID, nullable: true }
+      order_no: { type: varchar(128), comment: 订单号, key: UNI, nullable: false }
+      order_status: { type: "enum('PENDING', 'PAID', 'CANCELLED', 'REFUNDED', 'PARTIALLY_REFUNDED')", comment: 订单状态, nullable: false }
+      paid_at: { type: datetime, comment: 支付时间, nullable: true }
+      gross_amount: { type: decimal(18,2), comment: 总金额, nullable: false }
+      refund_amount: { type: decimal(18,2), comment: 退款金额, nullable: false }
+      currency_code: { type: char(3), comment: 货币代码, nullable: false }
+      created_at: { type: datetime, comment: 创建时间, nullable: false }
+
+  promotion_target:
+    description: 广告实际推广对象，如京东SKU、快手直播间、落地页。
+    columns:
+      id: { type: bigint unsigned, comment: 主键ID, key: PRI, nullable: false }
+      account_id: { type: bigint unsigned, comment: 广告账户ID, nullable: false }
+      target_type: { type: "enum('SKU', 'SPU', 'SHOP', 'LIVE_ROOM', 'LANDING_PAGE')", comment: 推广对象类型, nullable: false }
+      platform_target_id: { type: varchar(128), comment: 平台侧推广对象ID, nullable: false }
+      target_name: { type: varchar(255), comment: 推广对象名称, nullable: false }
+      target_price: { type: decimal(18,2), comment: 推广对象价格, nullable: true }
+      status: { type: tinyint, comment: 状态, nullable: false }
+      created_at: { type: datetime, comment: 创建时间, nullable: false }
+
+  ad_group_target_relation:
+    description: 广告单元绑定的商品、店铺或直播间。
+    columns:
+      ad_group_id: { type: bigint unsigned, comment: 广告组ID, key: PRI, nullable: false }
+      promotion_target_id: { type: bigint unsigned, comment: 推广对象ID, key: PRI, nullable: false }
+
+  ad_group_keyword:
+    description: 京东搜索快车等搜索广告的关键词定向。
+    columns:
+      id: { type: bigint unsigned, comment: 主键ID, key: PRI, nullable: false }
+      ad_group_id: { type: bigint unsigned, comment: 广告组ID, nullable: false }
+      keyword_text: { type: varchar(255), comment: 关键词文本, nullable: false }
+      match_type: { type: "enum('EXACT', 'PHRASE', 'BROAD')", comment: 匹配类型, nullable: false }
+      bid_amount: { type: decimal(18,4), comment: 出价金额, nullable: true }
+      status: { type: tinyint, comment: 状态, nullable: false }
 
 glossary:
-  - term: 数据时间范围
-    description: 演示库数据日期为2025-04-01至2025-06-30。相对时间必须以数据最大日期2025-06-30为基准，不使用系统当前日期。
-    sqlFragment: "SELECT MIN(data_date) AS min_date, MAX(data_date) AS max_date FROM ad_performance_daily"
-    synonyms: [时间基准, 数据截止日期, 最新数据日期]
+  - term: 渠道
+    description: 广告投放平台。当前系统包含巨量引擎、磁力金牛和京东广告。
+    sqlFragment: "JOIN marketing_channel mc ON mc.id = aa.channel_id"
+    synonyms: [ 媒体, 广告平台, 媒体渠道, channel, media ]
 
-  - term: 近7天
-    description: 以演示数据最大日期2025-06-30为截止日，包含截止日在内的最近7个自然日，即2025-06-24至2025-06-30。
-    sqlFragment: "data_date BETWEEN '2025-06-24' AND '2025-06-30'"
-    synonyms: [最近7天, 最近一周, 近一周, 过去7天]
+  - term: 广告账户
+    description: 广告主在某个广告渠道中的投放账户，是当前系统的数据权限最小单元。
+    sqlFragment: "p.account_id = aa.id"
+    synonyms: [ 账户, 投放账户, 媒体账户, ad account ]
 
-  - term: 近30天
-    description: 以演示数据最大日期2025-06-30为截止日，包含截止日在内的最近30个自然日，即2025-06-01至2025-06-30。
-    sqlFragment: "data_date BETWEEN '2025-06-01' AND '2025-06-30'"
-    synonyms: [最近30天, 最近一个月, 近一个月, 过去30天]
+  - term: 我的账户
+    description: 当前登录用户拥有权限的广告账户，不由LLM判断，必须由Harness根据user_ad_account注入账户范围。
+    sqlFragment: "p.account_id IN (:authorized_account_ids)"
+    synonyms: [ 我负责的账户, 我能看的账户, 我的投放账户 ]
 
-  - term: 本月
-    description: 演示数据最大日期所在月份，即2025年6月。
-    sqlFragment: "data_date BETWEEN '2025-06-01' AND '2025-06-30'"
-    synonyms: [这个月, 当前月, 6月, 六月份]
+  - term: 投放计划
+    description: 广告平台中的上层营销计划，统一映射到campaign。巨量、磁力金牛、京东的具体命名可能不同。
+    sqlFragment: "JOIN campaign c ON c.id = p.campaign_id"
+    synonyms: [ Campaign, 广告组, 商品计划, 推广计划, 计划 ]
 
-  - term: 上月
-    description: 演示数据最大日期所在月份的上一个月，即2025年5月。
-    sqlFragment: "data_date BETWEEN '2025-05-01' AND '2025-05-31'"
-    synonyms: [上个月, 5月, 五月份]
+  - term: 广告单元
+    description: 投放计划下配置人群、出价、预算策略和推广对象的单元，统一映射到ad_group。
+    sqlFragment: "JOIN ad_group ag ON ag.id = p.ad_group_id"
+    synonyms: [ 单元, 推广单元, Ad Group, 广告计划 ]
 
-  - term: 618期间
-    description: 演示库定义的618活动周期为2025-05-20至2025-06-20。
-    sqlFragment: "data_date BETWEEN '2025-05-20' AND '2025-06-20'"
-    synonyms: [618大促, 年中大促, 大促期间, 618活动期]
+  - term: 广告
+    description: 实际参与平台投放的广告对象，通常关联创意素材或落地页。
+    sqlFragment: "JOIN ad ad ON ad.id = p.ad_id"
+    synonyms: [ 投放广告, 广告创意, ad ]
 
-  - term: 618爆发期
-    description: 演示库定义的618流量高峰期为2025-06-15至2025-06-18。
-    sqlFragment: "data_date BETWEEN '2025-06-15' AND '2025-06-18'"
-    synonyms: [618高峰期, 大促爆发期]
+  - term: 素材
+    description: 图片、视频、标题、文案等创意资产。一个广告可使用一个或多个素材。
+    sqlFragment: "JOIN creative cr ON cr.id = p.creative_id"
+    synonyms: [ 创意, 广告素材, creative, 素材内容 ]
 
-  - term: 京东快车
-    description: 京东搜索广告产品，主要通过关键词和商品推广获取搜索流量，演示库product_id为1。
-    sqlFragment: "product_id = 1"
-    synonyms: [快车, 搜索快车, 京东搜索广告, 关键词推广]
+  - term: 视频素材
+    description: 素材类型为VIDEO的广告创意。
+    sqlFragment: "cr.creative_type = 'VIDEO'"
+    synonyms: [ 视频, 短视频, 视频创意, video ]
 
-  - term: 购物触点
-    description: 京东推荐广告产品，覆盖首页、商详、购物车等推荐场景，演示库product_id为2。
-    sqlFragment: "product_id = 2"
-    synonyms: [触点, 推荐广告, 京东推荐]
+  - term: 图片素材
+    description: 素材类型为IMAGE的广告创意。
+    sqlFragment: "cr.creative_type = 'IMAGE'"
+    synonyms: [ 图片, 静态图, 图片创意, image ]
 
-  - term: 京东海投
-    description: 京东全店托管类智能投放产品，演示库product_id为3。
-    sqlFragment: "product_id = 3"
-    synonyms: [海投, 全店托管, 智能投放]
+  - term: 人群包
+    description: 来源于巨量云图、磁力万象、京腾魔方或DMP的广告定向人群。查询广告单元绑定人群时，通过ad_group_audience_relation关联；当前系统仅查询，不执行人群创建或绑定。
+    sqlFragment: "JOIN ad_group_audience_relation r ON r.ad_group_id = ag.id AND r.status = 1 JOIN audience_package ap ON ap.package_id = r.package_id"
+    synonyms: [ 定向人群, 人群, audience, crowd package ]
 
-  - term: 京东展位
-    description: 京东品牌展示广告产品，以品牌曝光为主要目标，演示库product_id为4。
-    sqlFragment: "product_id = 4"
-    synonyms: [展位, 品牌展位, 京东品牌广告]
+  - term: 包含人群
+    description: 广告单元主动投放的人群包。
+    sqlFragment: "r.usage_type = 'INCLUDE'"
+    synonyms: [ 定向人群, 纳入人群, include audience ]
 
-  - term: 直投
-    description: 京东定向广告产品，可结合数坊或DMP人群进行定向投放，演示库product_id为5。
-    sqlFragment: "product_id = 5"
-    synonyms: [定向投放, 精准投放, 京东直投]
+  - term: 排除人群
+    description: 广告单元主动排除的人群包，例如已购用户，避免重复触达。
+    sqlFragment: "r.usage_type = 'EXCLUDE'"
+    synonyms: [ 排除包, 排除用户, exclude audience ]
 
-  - term: 京速推
-    description: 京东智能推广产品，适合新品起量或爆款冲量，演示库product_id为6。
-    sqlFragment: "product_id = 6"
-    synonyms: [京东智能推广, 一键推广, JST]
+  - term: 再营销人群
+    description: 已浏览、已互动、加购未购买等曾与品牌发生过行为的人群。
+    sqlFragment: "ap.package_type = 'RETARGETING'"
+    synonyms: [ 重定向人群, retargeting, 召回人群 ]
+
+  - term: 相似人群
+    description: 根据已购或高价值用户扩展出的相似用户集合。
+    sqlFragment: "ap.package_type = 'LOOKALIKE'"
+    synonyms: [ Lookalike, LAL, 相似包 ]
+
+  - term: 推广对象
+    description: 广告实际推广的SKU、店铺、直播间或落地页。
+    sqlFragment: "JOIN ad_group_target_relation tr ON tr.ad_group_id = ag.id JOIN promotion_target pt ON pt.id = tr.promotion_target_id"
+    synonyms: [ 商品, SKU, 店铺, 直播间, 落地页, target ]
+
+  - term: 直播间推广
+    description: 围绕抖音或快手直播间进行的广告投放。
+    sqlFragment: "pt.target_type = 'LIVE_ROOM'"
+    synonyms: [ 直播投放, 直播间引流, 直播广告 ]
+
+  - term: 京东关键词
+    description: 京东搜索广告中用于匹配用户搜索意图的关键词。
+    sqlFragment: "JOIN ad_group_keyword k ON k.ad_group_id = ag.id AND k.status = 1"
+    synonyms: [ 搜索词, 搜索关键词, keyword ]
 
   - term: 消耗
-    description: 广告实际花费金额，单位元。跨日期、账户、渠道或计划汇总时使用SUM(cost)。
-    sqlFragment: "SUM(cost) AS total_cost"
-    synonyms: [花费, 广告费, 广告消耗, cost, spend]
+    description: 广告平台报告的实际花费金额。跨日期、账户、计划或渠道汇总时必须使用SUM(cost)。
+    sqlFragment: "SUM(p.cost) AS total_cost"
+    synonyms: [ 花费, 广告费, 广告消耗, spend, cost ]
 
-  - term: 展现量
-    description: 广告被展示的次数，跨维度汇总时使用SUM(impressions)。
-    sqlFragment: "SUM(impressions) AS total_impressions"
-    synonyms: [曝光量, 展示量, impressions, 曝光次数]
+  - term: 曝光量
+    description: 广告成功展示给用户的次数，使用广告平台日报口径。
+    sqlFragment: "SUM(p.impressions) AS total_impressions"
+    synonyms: [ 曝光, 展现量, 展示量, impressions ]
 
   - term: 点击量
     description: 广告被点击的次数，跨维度汇总时使用SUM(clicks)。
-    sqlFragment: "SUM(clicks) AS total_clicks"
-    synonyms: [点击数, clicks, 点击次数]
+    sqlFragment: "SUM(p.clicks) AS total_clicks"
+    synonyms: [ 点击数, 点击次数, clicks, click ]
 
-  - term: CTR
-    description: 点击率，等于汇总点击量除以汇总展现量。跨天或跨对象分析时不得对每日CTR直接求平均。
-    sqlFragment: "SUM(clicks) / NULLIF(SUM(impressions), 0) AS ctr"
-    synonyms: [点击率, click through rate]
+  - term: 点击率
+    description: 点击量除以曝光量。不能对每日CTR或单广告CTR直接求平均。
+    sqlFragment: "SUM(p.clicks) / NULLIF(SUM(p.impressions), 0) AS ctr"
+    synonyms: [ CTR, 点击率 ]
 
-  - term: CPC
-    description: 平均点击成本，等于汇总消耗除以汇总点击量，单位元。
-    sqlFragment: "SUM(cost) / NULLIF(SUM(clicks), 0) AS cpc"
-    synonyms: [点击成本, 单次点击成本, average cpc]
+  - term: 点击成本
+    description: 平均每次点击的广告消耗。
+    sqlFragment: "SUM(p.cost) / NULLIF(SUM(p.clicks), 0) AS cpc"
+    synonyms: [ CPC, 单次点击成本 ]
 
-  - term: CPM
-    description: 千次展现成本，等于汇总消耗除以汇总展现量再乘1000，单位元。
-    sqlFragment: "SUM(cost) * 1000 / NULLIF(SUM(impressions), 0) AS cpm"
-    synonyms: [千次曝光成本, 千次展现成本]
+  - term: 千次曝光成本
+    description: 获得1000次广告曝光的平均消耗。
+    sqlFragment: "SUM(p.cost) * 1000 / NULLIF(SUM(p.impressions), 0) AS cpm"
+    synonyms: [ CPM, 千次展示成本 ]
 
-  - term: 直接成交订单数
-    description: 广告点击后按直接归因口径统计的成交订单数。
-    sqlFragment: "SUM(orders_direct) AS direct_orders"
-    synonyms: [直接订单, 直接成交笔数, 当日订单]
+  - term: 平台归因转化
+    description: 广告平台依据自身归因规则和归因窗口报告的转化数量，不等于企业真实订单数。
+    sqlFragment: "SUM(p.platform_conversions) AS platform_conversions"
+    synonyms: [ 转化, 转化量, 平台转化, conversions ]
 
-  - term: 7日归因订单数
-    description: 广告点击后7日归因窗口内统计的成交订单数。
-    sqlFragment: "SUM(orders_7d) AS orders_7d"
-    synonyms: [7日订单, 七日归因订单, 归因订单]
+  - term: 平台转化率
+    description: 平台归因转化量除以点击量。
+    sqlFragment: "SUM(p.platform_conversions) / NULLIF(SUM(p.clicks), 0) AS platform_cvr"
+    synonyms: [ CVR, 转化率, 点击转化率 ]
 
-  - term: 直接GMV
-    description: 按直接归因口径统计的成交金额，单位元。
-    sqlFragment: "SUM(gmv_direct) AS direct_gmv"
-    synonyms: [直接成交金额, 直接销售额]
+  - term: 平台转化成本
+    description: 平台归因下，每获得一次转化的平均广告消耗。
+    sqlFragment: "SUM(p.cost) / NULLIF(SUM(p.platform_conversions), 0) AS platform_cpa"
+    synonyms: [ CPA, 转化成本, 单次转化成本 ]
 
-  - term: 7日归因GMV
-    description: 广告点击后7日归因窗口内统计的成交金额，单位元。
-    sqlFragment: "SUM(gmv_7d) AS gmv_7d"
-    synonyms: [7日GMV, 七日归因成交金额, 归因GMV]
+  - term: 平台归因收入
+    description: 广告平台回传的归因成交金额或转化价值，不等同于企业财务确认收入。
+    sqlFragment: "SUM(p.platform_conversion_value) AS platform_conversion_value"
+    synonyms: [ 平台收入, 归因收入, conversion value ]
 
-  - term: ROI
-    description: 演示系统默认ROI口径为7日归因GMV除以广告消耗。用户只说ROI或投产比时直接使用此口径，并在答案中说明；无需追问。
-    sqlFragment: "SUM(gmv_7d) / NULLIF(SUM(cost), 0) AS roi_7d"
-    synonyms: [投产比, ROAS, 7日ROI, 7日投产比]
+  - term: 平台ROAS
+    description: 广告平台归因收入除以广告平台消耗。当前测试数据均为CNY，可以直接比较。
+    sqlFragment: "SUM(p.platform_conversion_value) / NULLIF(SUM(p.cost), 0) AS platform_roas"
+    synonyms: [ ROAS, 投产比, 广告回报 ]
 
-  - term: 直接ROI
-    description: 直接归因GMV除以广告消耗，用于用户明确要求直接成交口径时。
-    sqlFragment: "SUM(gmv_direct) / NULLIF(SUM(cost), 0) AS roi_direct"
-    synonyms: [直接投产比, 直接ROAS, 当日ROI]
+  - term: 真实转化
+    description: 企业Web、App、小程序、CRM或订单系统确认的注册、留资、加购或购买事件。
+    sqlFragment: "COUNT(DISTINCT ce.id) AS confirmed_conversions"
+    synonyms: [ 企业转化, 实际转化, confirmed conversion ]
 
-  - term: CVR
-    description: 演示系统默认转化率使用7日归因订单数除以点击量。跨天或跨对象分析时按汇总分子分母重算。
-    sqlFragment: "SUM(orders_7d) / NULLIF(SUM(clicks), 0) AS cvr_7d"
-    synonyms: [转化率, 7日转化率, conversion rate]
+  - term: 已支付订单
+    description: 企业订单系统中支付成功且未全额退款的订单。
+    sqlFragment: "COUNT(DISTINCT CASE WHEN o.order_status IN ('PAID', 'PARTIALLY_REFUNDED') THEN o.id END) AS paid_orders"
+    synonyms: [ 支付订单, 成交订单, paid order ]
 
-  - term: CPA
-    description: 演示系统默认转化成本使用消耗除以7日归因订单数，单位元。
-    sqlFragment: "SUM(cost) / NULLIF(SUM(orders_7d), 0) AS cpa_7d"
-    synonyms: [单次转化成本, 获客成本, 订单成本]
+  - term: 退款金额
+    description: 企业订单系统记录的退款金额。
+    sqlFragment: "SUM(o.refund_amount) AS total_refund_amount"
+    synonyms: [ 退款, refund ]
 
-  - term: 预算使用率
-    description: 某计划某天的消耗除以该计划当日预算。核心日报粒度是广告单元，必须先按campaign_id和data_date汇总cost，再用MAX(budget_snapshot)作为该计划当天预算，不能SUM预算快照。
-    sqlFragment: "SUM(cost) / NULLIF(MAX(budget_snapshot), 0) AS budget_utilization"
-    synonyms: [预算消耗率, 预算执行率, 预算进度]
+  - term: 净收入
+    description: 已支付订单的支付金额减去退款金额，属于企业真实财务口径。
+    sqlFragment: "SUM(CASE WHEN o.order_status IN ('PAID', 'PARTIALLY_REFUNDED') THEN o.gross_amount - o.refund_amount ELSE 0 END) AS net_revenue"
+    synonyms: [ 实收, 净营收, net revenue ]
 
-  - term: 广告账户
-    description: 品牌在京东平台上的投放账户和店铺载体。一个品牌可以有多个广告账户。
-    sqlFragment: "JOIN ad_account a ON a.account_id = ad_performance_daily.account_id"
-    synonyms: [账户, 店铺账户, 投放账户]
+  - term: 真实ROAS
+    description: 企业归因后的净收入除以广告消耗。必须明确归因模型后才可计算。
+    sqlFragment: "SUM(ar.attributed_value) / NULLIF(SUM(p.cost), 0) AS actual_roas"
+    synonyms: [ 真实投产比, 财务ROAS, actual ROAS ]
 
-  - term: 投放计划
-    description: 广告账户下按广告产品和投放目标创建的计划，是预算管理和效果分析的常用粒度。
-    sqlFragment: "JOIN campaign c ON c.campaign_id = ad_performance_daily.campaign_id"
-    synonyms: [计划, campaign, 广告计划]
+  - term: 归因窗口
+    description: 将转化归属到此前广告点击或曝光的有效时间范围。当前企业默认点击后7天、曝光后1天。
+    sqlFragment: "ar.click_window_days, ar.view_window_days"
+    synonyms: [ attribution window, attribution period ]
 
-  - term: 广告单元
-    description: 投放计划下配置定向和出价的具体单元，是核心效果日报的最小粒度。
-    sqlFragment: "JOIN ad_group g ON g.ad_group_id = ad_performance_daily.ad_group_id"
-    synonyms: [单元, 广告组, ad group]
+  - term: 最后非直接点击归因
+    description: 将转化归因给转化前最后一次非直接广告点击，是当前测试数据的默认企业归因模型。
+    sqlFragment: "ar.attribution_model = 'LAST_NON_DIRECT_CLICK'"
+    synonyms: [ 末次点击归因, last non-direct click ]
 
-  - term: 创意
-    description: 广告展示使用的主图、场景图、短视频或文字链。创意分析必须使用creative_performance_daily，不能和核心日报重复累计。
-    sqlFragment: "JOIN creative c ON c.creative_id = creative_performance_daily.creative_id"
-    synonyms: [素材, 广告素材, creative]
+  - term: 起量
+    description: 广告达到企业约定的投放规模门槛，不等于广告状态为ACTIVE。当前未配置统一阈值，查询前必须明确消耗、曝光、点击和连续天数。
+    sqlFragment: null
+    synonyms: [ 开始放量, 起投, 跑起来 ]
 
-  - term: 关键词
-    description: 京东快车搜索投放使用的关键词。关键词分析必须使用keyword_performance_daily和keyword_info。
-    sqlFragment: "JOIN keyword_info k ON k.keyword_id = keyword_performance_daily.keyword_id"
-    synonyms: [搜索词, keyword, 关键词投放]
-
-  - term: 人群包
-    description: 来源于数坊、京腾魔方或DMP的广告定向人群。查询计划或广告单元绑定的人群时，通过ad_group_audience_relation关联；当前系统仅查询，不执行人群创建或绑定。
-    sqlFragment: "JOIN ad_group_audience_relation r ON r.package_id = audience_package.package_id AND r.status = 1"
-    synonyms: [定向人群, 人群, audience, crowd package]
-
-  - term: 数坊
-    description: 京东生态中的人群数据与洞察工具，可用于创建和分析广告定向人群包。
-    sqlFragment: "source = '数坊'"
-    synonyms: [京东数坊, 数坊人群]
-
-  - term: 分时预算
-    description: 按预设时间段调整计划预算的自动化任务。预算变更记录在budget_change_log中；当前Agent只分析记录，不执行调整。
-    sqlFragment: "change_source = '分时预算任务'"
-    synonyms: [小时预算, 定时预算, 预算任务]
+  - term: 跑量
+    description: 广告在连续时间内取得一定规模的曝光和消耗，强调规模，不代表CPA或ROAS一定优秀。
+    sqlFragment: null
+    synonyms: [ 放量, 扩量, 大量投放 ]

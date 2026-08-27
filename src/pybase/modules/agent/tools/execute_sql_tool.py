@@ -3,6 +3,8 @@ from typing import Annotated
 from langchain_core.tools import tool
 from pydantic import Field
 
+from pybase.modules.account.data_access_guard import DataAccessGuard
+from pybase.modules.auth.schemas import UserRead
 from pybase.modules.sql_processing.explain_precheck_service import ExplainPrecheckService
 from pybase.modules.sql_processing.read_only_runner import ReadOnlyQueryRunner, SqlResult
 from pybase.modules.sql_processing.sql_safety_guard import SqlSafetyGuard
@@ -14,6 +16,8 @@ def create_execute_sql_tool(
         sql_safety_guard: SqlSafetyGuard,
         explain_precheck_service: ExplainPrecheckService,
         runner: ReadOnlyQueryRunner,
+        data_access_guard: DataAccessGuard,
+        user: UserRead,
 ):
     def render_table(columns, rows, preview):
         """渲染Markdown表格"""
@@ -90,7 +94,7 @@ def create_execute_sql_tool(
 
     @tool(
         description="执行只读 SELECT/WITH 查询并返回结果数据。"
-                    "参数名严格为 sql 和 userId，严谨使用任何其他参数名，"
+                    "参数名严格为 sql，严谨使用任何其他参数名，"
                     "传错会收到 \"参数名错误\" 提示，必须改用 sql 重新调用。"
                     "内部会强制做 SQL 安全校验（白名单/强制 LIMIT）和保守 EXPLAIN 预检查，"
                     "明显的大表明细扫描或 JOIN 扩张会被拦截。"
@@ -113,7 +117,13 @@ def create_execute_sql_tool(
                     f" \n 请重写 SQL：统计问题优先用 GROUP BY 聚合；明细问题增加选择性 WHERE，"
                     f" 按主表主键或时间字段稳定分页；一对多关系请先对子表聚合后 JOIN，或先查主键列表再按主键二次钻取。")
 
-        # 2. 数据权限改写
+        # 2. 数据权限改写 —— 强制注入 account_id 过滤条件
+        is_admin = user.role == "admin"
+        scope = await data_access_guard.get_data_scope(user.id, is_admin)
+        if not scope.is_admin:
+            if not scope.has_access:
+                return "❌ 您没有任何广告账户的数据权限，无法执行查询。请联系管理员分配广告账户。"
+            sql = data_access_guard.rewrite_sql(sql, scope)
 
         # 3. 执行预计划检查
         precheck_result = await explain_precheck_service.check(sql)
@@ -131,4 +141,3 @@ def create_execute_sql_tool(
     return execute_sql
 
     # 5. 数据脱敏
-

@@ -40,7 +40,7 @@ class GlossaryTerm(BaseModel):
 
     term: str
     description: str
-    sql_fragment: str = Field(alias="sqlFragment")
+    sql_fragment: str | None = Field(default=None, alias="sqlFragment")
     synonyms: list[str] = Field(default_factory=list)
 
 

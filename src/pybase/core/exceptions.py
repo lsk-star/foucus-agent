@@ -40,5 +40,25 @@ class DependencyUnavailableError(AppError):
         )
 
 
+class UnauthorizedError(AppError):
+    def __init__(self, message: str = "认证失败，请重新登录", *, details: Any = None) -> None:
+        super().__init__(
+            ErrorCode.AUTHENTICATION_FAILED,
+            message,
+            status_code=HTTPStatus.UNAUTHORIZED,
+            details=details,
+        )
+
+
+class ForbiddenError(AppError):
+    def __init__(self, message: str = "权限不足，禁止访问", *, details: Any = None) -> None:
+        super().__init__(
+            ErrorCode.AUTHORIZATION_FAILED,
+            message,
+            status_code=HTTPStatus.FORBIDDEN,
+            details=details,
+        )
+
+
 class ConfigurationError(RuntimeError):
     """启用的能力缺失配置或依赖时，在应用装配阶段抛出。"""

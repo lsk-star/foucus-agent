@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, func
+from sqlalchemy import BigInteger, DateTime, Identity, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -12,7 +12,7 @@ class IntIdMixin:
     """绝大多数业务实体使用的默认自增整数主键。"""
 
     id: Mapped[int] = mapped_column(
-        BigInteger, primary_key=True, autoincrement=True, comment="主键ID"
+        BigInteger, Identity(), primary_key=True, comment="主键ID"
     )
 
 

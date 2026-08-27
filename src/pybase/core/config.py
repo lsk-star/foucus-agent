@@ -44,7 +44,21 @@ class DatabaseSettings(BaseModel):
 
 
 class AuthSettings(BaseModel):
-    enabled: bool = False
+    enabled: bool = True
+    secret_key: str = "change-me-in-production"
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
+    refresh_token_expire_minutes: int = 60 * 24 * 7
+    public_paths: tuple[str, ...] = (
+        "/live",
+        "/ready",
+        "/docs",
+        "/redoc",
+        "/openapi.json",
+        "/api/v1/auth/login",
+        "/api/v1/auth/register",
+        "/api/v1/auth/refresh",
+    )
 
 
 class SkillSettings(BaseModel):

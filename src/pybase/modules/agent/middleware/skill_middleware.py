@@ -49,8 +49,8 @@ class SkillMiddleware(
         # 3. 加载 skill 元信息
         skills_metadata = await self.loader.load_metadata(enabled_skills)
 
-        if not skills_metadata:
-            return await handler(request)
+        # if not skills_metadata:
+        #     return await handler(request)
 
         skills = "《Available Skills》"+"\n".join([f"name：{skill.name} description：{skill.description}" for skill in skills_metadata])+"《Available Skills/》\n 。使用技能必须调用 get_skill_content 这个工具"
 
