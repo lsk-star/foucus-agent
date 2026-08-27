@@ -10,6 +10,57 @@
 #   PRIMARY KEY (`id`),
 #   UNIQUE INDEX `uk_agentx_skill_name`(`name`)
 # );
+CREATE TABLE conversation (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    conversation_no CHAR(36) NOT NULL COMMENT '对外暴露的会话UUID',
+    user_id BIGINT UNSIGNED NOT NULL COMMENT '所属用户ID',
+    title VARCHAR(255) NOT NULL DEFAULT '新会话' COMMENT '会话标题',
+    status ENUM('ACTIVE', 'ARCHIVED', 'DELETED')
+        NOT NULL DEFAULT 'ACTIVE' COMMENT '会话状态',
+    last_message_at DATETIME NULL COMMENT '最后消息时间',
+    deleted_at DATETIME NULL COMMENT '删除时间',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_conversation_no (conversation_no),
+    KEY idx_conversation_user_status (
+        user_id, status, updated_at
+    ),
+    KEY idx_conversation_user_last_message (
+        user_id, last_message_at
+    ),
+
+    CONSTRAINT fk_conversation_user
+        FOREIGN KEY (user_id)
+        REFERENCES app_user(id)
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COMMENT='用户会话表';
+
+CREATE TABLE conversation_message (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    conversation_id BIGINT UNSIGNED NOT NULL,
+    message_no INT UNSIGNED NOT NULL,
+    role ENUM('user', 'assistant') NOT NULL,
+    content TEXT NOT NULL,
+    duration_ms BIGINT UNSIGNED NULL COMMENT '本次消息耗时，单位毫秒',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_conversation_message_no (
+        conversation_id, message_no
+    ),
+    KEY idx_message_conversation_created (
+        conversation_id, created_at
+    ),
+
+    CONSTRAINT fk_message_conversation
+        FOREIGN KEY (conversation_id)
+        REFERENCES conversation(id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB COMMENT='会话历史消息';
 
 
 CREATE TABLE app_user (

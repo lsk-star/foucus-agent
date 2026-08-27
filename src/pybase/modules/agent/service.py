@@ -1,6 +1,8 @@
+import asyncio
 import logging
 
 from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import ToolMessage
 
 from pybase.modules.account.data_access_guard import DataAccessGuard
 from pybase.modules.agent.middleware.skill_middleware import SkillMiddleware
@@ -43,10 +45,63 @@ class AgentService:
         self._runner = runner
         self._data_access_guard = data_access_guard
 
-    async def chat(self, message: str, user: UserRead) -> ChatResponse:
+    async def chat(self, message: str, user: UserRead, conversation_id: str | None = None) -> ChatResponse:
         agent = await self._build_agent(user)
         response = await agent.ainvoke({"messages": [{"role": "user", "content": message}]})
         return ChatResponse(answer=str(response["messages"][-1].content_blocks))
+
+    async def chat_stream(self, message: str, user: UserRead, conversation_id: str | None = None):
+        from pybase.modules.agent.emitter import send_text, send_thinking, send_tool_call, send_tool_result, send_done, \
+            send_error
+
+        agent = await self._build_agent(user)
+        input_data = {"messages": [{"role": "user", "content": message}]}
+
+        queue: asyncio.Queue[dict | None] = asyncio.Queue()
+        loop = asyncio.get_running_loop()
+
+        def sync_consume():
+            try:
+                stream = agent.stream_events(input_data, version="v3")
+                seen_tool_ids: set[str] = set()
+                for name, item in stream.interleave("messages", "values"):
+                    if name == "messages":
+                        msg_stream = item
+                        for delta in msg_stream.reasoning:
+                            loop.call_soon_threadsafe(queue.put_nowait, send_thinking(delta))
+                        for delta in msg_stream.text:
+                            loop.call_soon_threadsafe(queue.put_nowait, send_text(delta))
+                        finalized = msg_stream.tool_calls.get()
+                        if finalized:
+                            for tc in finalized:
+                                loop.call_soon_threadsafe(
+                                    queue.put_nowait,
+                                    send_tool_call(id=tc.get("id", ""), name=tc.get("name", ""),
+                                                   args=tc.get("args", {})),
+                                )
+                    elif name == "values":
+                        state = item
+                        for msg in state.get("messages", []):
+                            if isinstance(msg, ToolMessage) and msg.id not in seen_tool_ids:
+                                seen_tool_ids.add(msg.id)
+                                loop.call_soon_threadsafe(queue.put_nowait, send_tool_result(id=msg.tool_call_id,
+                                                                                             content=str(msg.content)))
+            except Exception:
+                logger.exception("Error in chat_stream sync consumer")
+                loop.call_soon_threadsafe(queue.put_nowait, send_error("服务内部错误，请稍后重试"))
+            finally:
+                loop.call_soon_threadsafe(queue.put_nowait, None)
+
+        loop.run_in_executor(None, sync_consume)
+
+        try:
+            while True:
+                event = await queue.get()
+                if event is None:
+                    break
+                yield event
+        finally:
+            yield send_done()
 
     async def _build_agent(self, user: UserRead):
         from langchain.agents import create_agent

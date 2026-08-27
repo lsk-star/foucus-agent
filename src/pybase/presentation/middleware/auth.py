@@ -22,7 +22,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         token = _extract_token(request)
         if token is None:
-            return _unauthorized("缺少 Authorization 请求头")
+            return _unauthorized("请先登录")
 
         try:
             payload = decode_token(token, expected_type="access")
