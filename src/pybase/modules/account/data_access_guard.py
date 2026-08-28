@@ -126,9 +126,9 @@ class DataAccessGuard:
                 )
                 existing_where = select.args.get("where")
                 if existing_where:
-                    select.set("where", exp.And(this=existing_where, expression=in_expr))
+                    select.set("where", exp.Where(this=exp.And(this=existing_where.this, expression=in_expr)))
                 else:
-                    select.set("where", in_expr)
+                    select.set("where", exp.Where(this=in_expr))
 
         elif isinstance(table, exp.Subquery):
             if isinstance(table.this, exp.Select):

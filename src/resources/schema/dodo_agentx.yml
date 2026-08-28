@@ -439,3 +439,7 @@ glossary:
     description: 广告在连续时间内取得一定规模的曝光和消耗，强调规模，不代表CPA或ROAS一定优秀。
     sqlFragment: null
     synonyms: [ 放量, 扩量, 大量投放 ]
+
+  - term: 时间锚点
+    description:
+      所有相对时间（"最近 / 近 N 个月 / 本月 / 上月 / 今年"）必须基于当前最大时间来计算，比如：今天是8月2日，"昨天"就是8月1日。

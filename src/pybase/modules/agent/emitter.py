@@ -20,8 +20,11 @@ def send_tool_result(id: str, content: str) -> dict:
     return {"type": "tool_result", "id": id, "content": content}
 
 
-def send_done() -> dict:
-    return {"type": "done"}
+def send_done(conversation_id: str | None = None) -> dict:
+    result: dict = {"type": "done"}
+    if conversation_id is not None:
+        result["conversation_id"] = conversation_id
+    return result
 
 
 def send_error(content: str) -> dict:

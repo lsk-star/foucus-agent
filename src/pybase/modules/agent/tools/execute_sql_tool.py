@@ -123,7 +123,7 @@ def create_execute_sql_tool(
         if not scope.is_admin:
             if not scope.has_access:
                 return "❌ 您没有任何广告账户的数据权限，无法执行查询。请联系管理员分配广告账户。"
-            sql = data_access_guard.rewrite_sql(sql, scope)
+            sql = await data_access_guard.rewrite_sql(sql, scope)
 
         # 3. 执行预计划检查
         precheck_result = await explain_precheck_service.check(sql)
@@ -136,8 +136,8 @@ def create_execute_sql_tool(
         # 4. 执行 SQL 语句
         sql_result: SqlResult = await runner.execute(sql)
 
+        # 5. 数据脱敏
+
         return _format_result(sql_result)
 
     return execute_sql
-
-    # 5. 数据脱敏

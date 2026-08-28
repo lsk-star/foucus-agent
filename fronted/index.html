@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Northstar · Focus Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">N</span><span>NORTHSTAR</span></div>
+    <button class="new-chat" id="newChat">＋ 开启新对话</button>
+    <div class="history-title"><span>最近会话</span><span id="historyCount">0 条</span></div>
+    <ul class="history" id="history"><li class="empty">登录后加载历史会话</li></ul>
+    <div class="history-pager"><button id="historyPrev" aria-label="上一页" disabled>‹</button><span id="historyPage">1 / 1</span><button id="historyNext" aria-label="下一页" disabled>›</button></div>
+    <div class="side-foot"><span>Focus Agent</span></div>
+  </aside>
+  <main class="main">
+    <header class="topbar"><div class="crumb"><span>Northstar</span><span>/</span><strong id="crumbTitle">新对话</strong></div><div class="user" id="user"><div class="avatar">?</div><span class="user-name">未登录</span><span class="chev">⌄</span><div class="menu"><button data-view="skills">技能库</button><button data-view="accounts">账户权限</button><button data-view="settings">个人设置</button><a href="login.html">登录</a></div></div></header>
+    <section class="content">
+      <section class="view home-view active" id="view-home">
+        <div class="welcome-panel" aria-hidden="true"><div class="welcome-mark">N</div><h1>开始聊天吧</h1><div class="welcome-modes"><button class="mode active"><span class="mode-symbol">速</span>快速模式</button><button class="mode"><span class="mode-symbol">专</span>专家模式</button><button class="mode"><span class="mode-symbol">图</span>识图模式</button></div></div>
+        <div class="capabilities" id="capabilities">
+          <article class="cap" data-title="数据分析"><div><h3>数据分析</h3><p>上传表格，快速识别趋势、异常与关键指标。</p></div><div class="cap-icon">⌁</div></article>
+          <article class="cap" data-title="知识库问答"><div><h3>知识库问答</h3><p>基于团队资料检索信息，给出可追溯的回答。</p></div><div class="cap-icon">⌕</div></article>
+          <svg class="assistant-figure" viewBox="0 0 180 220" role="img" aria-label="智能助手"><defs><linearGradient id="helmet" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#dce5ff"/></linearGradient></defs><circle cx="90" cy="16" r="5" fill="#4d6bfe"/><path d="M90 25V40" stroke="#202634" stroke-width="4"/><path d="M79 14h-8M101 14h8M79 25l-6 5M101 25l6 5" stroke="#4d6bfe" stroke-width="3" stroke-linecap="round"/><path d="M35 58 19 74v35l14-10M145 58l16 16v35l-14-10" fill="none" stroke="#202634" stroke-width="7" stroke-linejoin="round"/><path d="M37 78C37 48 58 39 90 39s53 9 53 39v44c0 27-23 38-53 38s-53-11-53-38Z" fill="url(#helmet)" stroke="#202634" stroke-width="7"/><rect x="47" y="62" width="86" height="72" rx="29" fill="#282727"/><rect x="29" y="85" width="10" height="28" rx="3" fill="#262323"/><rect x="141" y="85" width="10" height="28" rx="3" fill="#262323"/><rect x="30" y="91" width="4" height="15" fill="#56d9ec"/><rect x="146" y="91" width="4" height="15" fill="#56d9ec"/><ellipse cx="69" cy="98" rx="7" ry="11" fill="white"/><ellipse cx="111" cy="98" rx="7" ry="11" fill="white"/><path d="M82 112l8 8 8-8" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M49 145h82l11 43H38Z" fill="#30302f" stroke="#202634" stroke-width="6" stroke-linejoin="round"/><path d="m54 148 36 21 36-21" fill="none" stroke="#4d6bfe" stroke-width="3" opacity=".75"/><path d="M44 156 20 177l13 28 30-22M136 156l24 21-13 28-30-22" fill="#393938" stroke="#262323" stroke-width="6" stroke-linejoin="round"/><path d="M43 178l-12 11M137 178l12 11" stroke="#56d9ec" stroke-width="4" stroke-linecap="round"/><path d="M67 188v18M113 188v18" stroke="#262323" stroke-width="7"/><path d="M56 207h25v8H54M99 207h25v8H99" fill="#fff" stroke="#262323" stroke-width="4" stroke-linejoin="round"/><text x="90" y="190" text-anchor="middle" font-family="DM Mono,monospace" font-size="20" font-weight="500" fill="white">AI</text></svg>
+          <article class="cap" data-title="内容创作"><div><h3>内容创作</h3><p>从一个想法开始，生成结构清晰的内容草稿。</p></div><div class="cap-icon">✦</div></article>
+          <article class="cap" data-title="任务协作"><div><h3>任务协作</h3><p>拆解目标、安排步骤，让复杂工作持续推进。</p></div><div class="cap-icon">↗</div></article>
+        </div>
+        <div class="messages home-messages" id="messages"></div><div class="composer-wrap"><div class="composer"><textarea id="prompt" placeholder="输入你的问题，或描述一项任务…"></textarea><div class="composer-bottom"><div class="modes"><button class="mode active">数据分析</button><button class="mode">知识库问答</button><button class="mode">添加附件</button></div><button class="send" id="send" aria-label="发送">↑</button></div></div></div>
+      </section>
+
+      <section class="view" id="view-conversations"><div class="page-head"><div><div class="eyebrow">/ agent · conversations</div><h1>会话记录</h1><p>管理历史上下文，继续未完成的工作。</p></div><button class="primary" id="createConversation">＋ 新会话</button></div><div class="conversation-layout"><div class="conversation-list"><header><h3>全部会话</h3><span class="sub" id="conversationTotal">0 条</span></header><div id="conversationItems" class="conversation-items empty-state">登录后加载会话</div></div><div class="chat-panel"><div class="chat-header"><div><strong id="conversationTitle">新对话</strong><span id="conversationId"></span></div><button class="icon-btn" title="更多操作">⋯</button></div><div class="messages" id="conversationMessages"></div><div class="chat-compose"><input id="chatInput" placeholder="继续输入…" /><button class="send" id="chatSend" aria-label="发送">↑</button></div></div></div></section>
+
+      <section class="view" id="view-skills"><div class="page-head"><div><div class="eyebrow">/ registry · skills</div><h1>技能库</h1><p>管理 Agent 可调用的工作流与工具能力。</p></div><button class="primary" id="uploadSkill">＋ 上传 Skill</button><input id="skillFile" type="file" accept=".zip,application/zip" hidden></div><div class="table-shell"><div class="toolbar"><input class="search" id="skillSearch" placeholder="搜索技能名称…" /><select class="select" id="skillFilter"><option value="all">全部状态</option><option value="on">已启用</option><option value="off">已停用</option></select></div><div class="table-scroll"><table><thead><tr><th>技能</th><th>状态</th><th>文件</th><th>更新时间</th><th>操作</th></tr></thead><tbody id="skillRows"><tr><td colspan="5" class="empty-state">登录后加载技能</td></tr></tbody></table></div></div></section>
+
+      <section class="view" id="view-accounts"><div class="page-head"><div><div class="eyebrow">/ access · accounts</div><h1>账户权限</h1><p>查看当前数据范围，为团队成员分配广告账户访问权限。</p></div></div><div class="account-grid"><div><div class="scope-panel" id="scopePanel"><div class="eyebrow">current scope</div><h2>登录后加载权限范围</h2></div></div><div class="account-table"><h3>我的广告账户 <span class="sub">GET /api/v1/account/my-accounts</span></h3><div id="accountRows" class="empty-state">登录后加载账户</div></div></div></section>
+
+      <section class="view" id="view-settings"><div class="page-head"><div><div class="eyebrow">/ account · settings</div><h1>个人设置</h1><p>更新资料、密码与工作空间运行状态。</p></div></div><div class="settings-grid"><div class="settings-panel"><h3>基本资料 <span class="sub">PATCH /api/v1/auth/me</span></h3><div class="form-grid"><div class="field"><label>姓名</label><input></div><div class="field"><label>职位</label><input></div><div class="field"><label>邮箱</label><input></div><div class="field"><label>手机号</label><input></div></div><div class="form-actions"><button class="primary" id="saveProfile">保存资料</button></div><hr style="border:0;border-top:1px solid #edf0f8;margin:22px 0"><h3>修改密码 <span class="sub">POST /api/v1/auth/change-password</span></h3><div class="form-grid"><div class="field full"><label>当前密码</label><input type="password" placeholder="输入当前密码"></div><div class="field"><label>新密码</label><input type="password" placeholder="至少 6 位"></div><div class="field"><label>确认新密码</label><input type="password" placeholder="再次输入"></div></div><div class="form-actions"><button class="ghost" id="changePassword">更新密码</button></div></div><div class="settings-panel"><h3>系统状态 <span class="sub">GET /live · /ready · /api/v1/system/info</span></h3><div id="systemStatus" class="empty-state">登录后加载系统状态</div></div></div></section>
+
+      <section class="view auth-view" id="view-auth"><div class="auth-card"><div class="auth-brand"><span class="brand-mark">N</span><span>NORTHSTAR / ACCESS</span></div><h1 id="authTitle">欢迎回来</h1><p id="authDesc">登录你的 Focus Agent 工作空间。</p><form class="auth-form" id="authForm"><div class="field register-only" style="display:none"><label>姓名</label><input placeholder="你的姓名" /></div><div class="field"><label>用户名</label><input required placeholder="username" /></div><div class="field"><label>密码</label><input required type="password" placeholder="至少 6 位" /></div><button class="primary auth-submit" id="authSubmit">登录</button></form><div class="auth-switch"><span id="authSwitchText">还没有账号？</span><button id="authSwitch">注册新账号</button></div></div></section>
+    </section>
+  </main>
+</div>
+<div class="modal-backdrop" id="modal"><div class="modal"><div class="modal-head"><h3>分配账户权限</h3><button class="modal-close" id="modalClose">×</button></div><div class="form-grid"><div class="field full"><label>用户 ID</label><input id="grantUserId" inputmode="numeric" placeholder="请输入用户 ID" /></div><div class="field full"><label>广告账户 ID</label><input id="grantAccountId" inputmode="numeric" placeholder="请输入广告账户 ID" /></div><div class="field full"><label>角色</label><input id="grantRole" value="VIEWER" placeholder="VIEWER" /></div></div><div class="modal-actions"><button class="ghost" id="modalCancel">取消</button><button class="primary" id="modalConfirm">确认分配</button></div></div></div>
+<div class="toast" id="toast"></div>
+<script src="app.js" defer></script>
+</body>
+</html>
+

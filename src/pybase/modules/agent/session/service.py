@@ -12,8 +12,7 @@ from .schemas import (
     ConversationQuery,
     ConversationRead,
     ConversationUpdate,
-    MessageCreate,
-    MessageRead,
+    MessageRead, MessageCreate,
 )
 
 
@@ -97,29 +96,55 @@ class SessionService:
 
         return await self._repo.list_messages(conversation.id)
 
-    # async def append_message(
-    #     self,
-    #     user_id: int,
-    #     conversation_no: str,
-    #     data: MessageCreate,
-    # ) -> MessageRead | None:
-    #     conversation = await self._repo.get_owned_conversation(
-    #         user_id=user_id,
-    #         conversation_no=conversation_no,
-    #     )
-    #     if conversation is None:
-    #         return None
-    #
-    #     try:
-    #         role = MessageRole(data.role)
-    #     except ValueError as exc:
-    #         raise ConflictError(
-    #             "消息角色只能是 user 或 assistant"
-    #         ) from exc
-    #
-    #     return await self._repo.append_message(
-    #         conversation=conversation,
-    #         role=role,
-    #         content=data.content,
-    #         duration_s=data.duration_ms,
-    #     )
+    async def exists(self, user_id: int, conversation_no: str) -> bool:
+        return await self._repo.get_owned_conversation(user_id, conversation_no) is not None
+
+    async def append_message(
+        self,
+        user_id: int,
+        conversation_no: str,
+        data: MessageCreate,
+    ) -> MessageRead | None:
+        conversation = await self._repo.get_owned_conversation(
+            user_id=user_id,
+            conversation_no=conversation_no,
+        )
+        if conversation is None:
+            return None
+
+        try:
+            role = MessageRole(data.role)
+        except ValueError as exc:
+            raise ConflictError(
+                "消息角色只能是 user 或 assistant"
+            ) from exc
+
+        return await self._repo.append_message(
+            conversation=conversation,
+            role=role,
+            content=data.content,
+            duration_s=data.duration_ms,
+        )
+
+    async def save_messages(
+        self,
+        user_id: int,
+        conversation_no: str,
+        user_content: str,
+        assistant_content: str,
+        duration_s: int | None = None,
+    ) -> bool:
+        conversation = await self._repo.get_owned_conversation(
+            user_id=user_id,
+            conversation_no=conversation_no,
+        )
+        if conversation is None:
+            return False
+
+        await self._repo.append_messages_pair(
+            conversation=conversation,
+            user_content=user_content,
+            assistant_content=assistant_content,
+            duration_s=duration_s,
+        )
+        return True

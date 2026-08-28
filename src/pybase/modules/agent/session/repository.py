@@ -93,7 +93,7 @@ class SessionRepository:
             select(Conversation)
             .where(*conditions)
             .order_by(
-                Conversation.last_message_at.desc().nullslast(),
+                Conversation.last_message_at.desc(),
                 Conversation.id.desc(),
             )
             .offset(query.offset)
@@ -135,37 +135,76 @@ class SessionRepository:
             for item in result.scalars().all()
         ]
 
-    # async def append_message(
-    #     self,
-    #     conversation: Conversation,
-    #     role: MessageRole,
-    #     content: str,
-    #     duration_s: int | None = None,
-    # ) -> MessageRead:
-    #     max_no_stmt = select(
-    #         func.coalesce(
-    #             func.max(ConversationMessage.message_no),
-    #             0,
-    #         )
-    #     ).where(
-    #         ConversationMessage.conversation_id == conversation.id
-    #     )
-    #     max_no = int(
-    #         (await self._session.execute(max_no_stmt)).scalar_one()
-    #     )
-    #
-    #     message = ConversationMessage(
-    #         conversation_id=conversation.id,
-    #         message_no=max_no + 1,
-    #         role=role,
-    #         content=content,
-    #         duration_s=duration_s,
-    #     )
-    #
-    #     conversation.last_message_at = datetime.now()
-    #     self._session.add(message)
-    #
-    #     await self._session.flush()
-    #     await self._session.refresh(message)
-    #
-    #     return MessageRead.model_validate(message)
+    async def append_message(
+        self,
+        conversation: Conversation,
+        role: MessageRole,
+        content: str,
+        duration_s: int | None = None,
+    ) -> MessageRead:
+        max_no_stmt = select(
+            func.coalesce(
+                func.max(ConversationMessage.message_no),
+                0,
+            )
+        ).where(
+            ConversationMessage.conversation_id == conversation.id
+        )
+        max_no = int(
+            (await self._session.execute(max_no_stmt)).scalar_one()
+        )
+
+        message = ConversationMessage(
+            conversation_id=conversation.id,
+            message_no=max_no + 1,
+            role=role,
+            content=content,
+            duration_s=duration_s,
+        )
+
+        conversation.last_message_at = datetime.now()
+        self._session.add(message)
+
+        await self._session.flush()
+        await self._session.refresh(message)
+
+        return MessageRead.model_validate(message)
+
+    async def append_messages_pair(
+        self,
+        conversation: Conversation,
+        user_content: str,
+        assistant_content: str,
+        duration_s: int | None = None,
+    ) -> None:
+        max_no_stmt = select(
+            func.coalesce(
+                func.max(ConversationMessage.message_no),
+                0,
+            )
+        ).where(
+            ConversationMessage.conversation_id == conversation.id
+        )
+        max_no = int(
+            (await self._session.execute(max_no_stmt)).scalar_one()
+        )
+
+        user_msg = ConversationMessage(
+            conversation_id=conversation.id,
+            message_no=max_no + 1,
+            role=MessageRole.USER,
+            content=user_content,
+        )
+        assistant_msg = ConversationMessage(
+            conversation_id=conversation.id,
+            message_no=max_no + 2,
+            role=MessageRole.ASSISTANT,
+            content=assistant_content,
+            duration_s=duration_s,
+        )
+
+        conversation.last_message_at = datetime.now()
+        self._session.add(user_msg)
+        self._session.add(assistant_msg)
+
+        await self._session.flush()

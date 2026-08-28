@@ -239,13 +239,16 @@ class ReadOnlyQueryRunner:
 
     async def _try_set_read_only(self, conn: AsyncConnection) -> None:
         """
-        尝试设置连接为只读事务，失败则静默忽略
+        尝试设置下一个事务为只读，失败则静默忽略。
+
+        使用 SET TRANSACTION READ ONLY（不带 SESSION），
+        仅影响当前事务，事务结束后自动失效，不会污染连接池。
 
         Args:
             conn: 异步数据库连接
         """
         try:
-            await conn.execute(text("SET SESSION TRANSACTION READ ONLY"))
+            await conn.execute(text("SET TRANSACTION READ ONLY"))
         except Exception as e:
             logger.debug("setReadOnly 失败，忽略：%s", str(e))
 

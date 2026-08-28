@@ -2,6 +2,7 @@ import enum
 from datetime import datetime
 
 from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, Identity, Integer, String, Text, func
+from sqlalchemy.dialects.mysql import BIGINT as MySQLBigUint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from pybase.infrastructure.database.base import Base
@@ -34,7 +35,7 @@ class Conversation(Base):
         String(36), unique=True, nullable=False
     )
     user_id: Mapped[int] = mapped_column(
-        BigInteger,
+        MySQLBigUint(unsigned=True),
         ForeignKey("app_user.id"),
         nullable=False,
         index=True,

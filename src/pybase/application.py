@@ -27,6 +27,15 @@ def _build_components(settings: Settings) -> ComponentRegistry:
             raise ConfigurationError("...") from exc
         registry.add(DatabaseComponent(settings.database))
 
+    if settings.redis.enabled:
+        try:
+            from pybase.infrastructure.redis.component import RedisComponent
+            from pybase.infrastructure.redis.checkpoint import RedisCheckpointComponent
+        except ImportError as exc:
+            raise ConfigurationError("Redis 已启用，但未安装 redis checkpoint 依赖。请执行: uv sync") from exc
+        registry.add(RedisComponent(settings.redis))
+        registry.add(RedisCheckpointComponent(settings.redis))
+
     if settings.llm.enabled:
         try:
             from pybase.infrastructure.llm.component import LlmComponent

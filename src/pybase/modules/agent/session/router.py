@@ -1,14 +1,14 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from pybase.modules.auth.dependencies import CurrentUserReadDep
 from pybase.presentation.responses import success_response
 
+from .dependencies import SessionServiceDep
 from .schemas import (
     ConversationCreate,
     ConversationQuery,
     ConversationUpdate,
 )
-from .service import SessionService
 
 router = APIRouter(
     prefix="/conversations",
@@ -18,9 +18,9 @@ router = APIRouter(
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_conversation(
-    data: ConversationCreate,
-    service: SessionService,
-    current_user: CurrentUserReadDep,
+        data: ConversationCreate,
+        service: SessionServiceDep,
+        current_user: CurrentUserReadDep,
 ):
     result = await service.create(current_user.id, data)
     return success_response(result)
@@ -28,10 +28,10 @@ async def create_conversation(
 
 @router.patch("/{conversation_no}")
 async def update_conversation(
-    conversation_no: str,
-    data: ConversationUpdate,
-    service: SessionService,
-    current_user: CurrentUserReadDep,
+        conversation_no: str,
+        data: ConversationUpdate,
+        service: SessionServiceDep,
+        current_user: CurrentUserReadDep,
 ):
     result = await service.update(current_user.id, conversation_no, data)
     if result is None:
@@ -41,9 +41,9 @@ async def update_conversation(
 
 @router.get("")
 async def list_conversations(
-    query: ConversationQuery,
-    service: SessionService,
-    current_user: CurrentUserReadDep,
+        service: SessionServiceDep,
+        current_user: CurrentUserReadDep,
+        query: ConversationQuery = Depends(),
 ):
     result = await service.list(current_user.id, query)
     return success_response(result)
@@ -51,9 +51,9 @@ async def list_conversations(
 
 @router.delete("/{conversation_no}")
 async def delete_conversation(
-    conversation_no: str,
-    service: SessionService,
-    current_user: CurrentUserReadDep,
+        conversation_no: str,
+        service: SessionServiceDep,
+        current_user: CurrentUserReadDep,
 ):
     deleted = await service.delete(current_user.id, conversation_no)
     if not deleted:
@@ -63,9 +63,9 @@ async def delete_conversation(
 
 @router.get("/{conversation_no}/messages")
 async def list_messages(
-    conversation_no: str,
-    service: SessionService,
-    current_user: CurrentUserReadDep,
+        conversation_no: str,
+        service: SessionServiceDep,
+        current_user: CurrentUserReadDep,
 ):
     result = await service.list_messages(current_user.id, conversation_no)
     if result is None:

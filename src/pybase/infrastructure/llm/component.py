@@ -5,7 +5,9 @@ from pybase.core.config import LlmSettings
 from pybase.core.exceptions import ConfigurationError
 
 import logging
+
 logger = logging.getLogger(__name__)
+
 
 class LlmComponent:
     name = "llm"
@@ -27,6 +29,7 @@ class LlmComponent:
                 model=self._settings.model,
                 temperature=self._settings.temperature,
                 max_tokens=self._settings.max_tokens,
+                #     开启思考模式
             )
         # ...其他 provider
 

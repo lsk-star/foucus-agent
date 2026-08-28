@@ -4,10 +4,12 @@ from fastapi.responses import StreamingResponse
 from pybase.modules.agent.dependencies import AgentServiceDep
 from pybase.modules.agent.emitter import format_sse
 from pybase.modules.agent.schemas import ChatRequest
+from pybase.modules.agent.session.router import router as session_router
 from pybase.modules.auth.dependencies import CurrentUserReadDep
 from pybase.presentation.responses import success_response
 
 router = APIRouter(prefix="/agent", tags=["agent"])
+router.include_router(session_router)
 
 
 @router.post("/chat", tags=["agent"])

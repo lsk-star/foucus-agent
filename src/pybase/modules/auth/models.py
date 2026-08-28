@@ -1,6 +1,8 @@
 import enum
 
-from sqlalchemy import Boolean, Enum, String
+from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, Enum, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from pybase.infrastructure.database.base import Base, IntIdMixin, TimestampMixin
@@ -42,6 +44,6 @@ class AppUser(IntIdMixin, TimestampMixin, Base):
     status: Mapped[UserStatus] = mapped_column(
         Enum(UserStatus), nullable=False, default=UserStatus.ACTIVE, server_default="ACTIVE", comment="状态"
     )
-    last_login_at: Mapped[str | None] = mapped_column(
-        nullable=True, comment="最后登录时间"
+    last_login_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True, comment="最后登录时间"
     )

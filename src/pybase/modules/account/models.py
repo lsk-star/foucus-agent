@@ -1,6 +1,8 @@
 import enum
 
-from sqlalchemy import BigInteger, Enum, String
+from datetime import datetime
+
+from sqlalchemy import BigInteger, DateTime, Enum, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from pybase.infrastructure.database.base import Base, IntIdMixin, TimestampMixin
@@ -53,9 +55,9 @@ class UserAdAccount(Base):
     role: Mapped[UserAdAccountRole] = mapped_column(
         Enum(UserAdAccountRole), nullable=False, default=UserAdAccountRole.VIEWER, comment="角色"
     )
-    granted_at: Mapped[str | None] = mapped_column(
-        nullable=True, comment="授权时间"
+    granted_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True, comment="授权时间"
     )
-    expires_at: Mapped[str | None] = mapped_column(
-        nullable=True, comment="过期时间"
+    expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True, comment="过期时间"
     )

@@ -14,7 +14,6 @@ userInvocable: true
 
 | 工具              | 用途 |
 |-----------------|---|
-| `todoWrite`     | 规划和跟踪多步骤分析任务 |
 | `listTables`    | 列出全部表（含注释 + 关联表），用于按用户问题挑相关表 |
 | `describeTables` | 查看指定表字段详情（类型/PK/NOT NULL/注释/外键/示例值 Examples） |
 | `lookupGlossary` | 查业务术语标准口径（"活跃客户""大额"怎么算） |
@@ -165,7 +164,6 @@ executeSql 成功后，过这五问再继续：
 ### 产出报告（必须执行）
 
 **收尾顺序（严格）**：
-1. 调 `todoWrite` 标记所有任务 completed
 2. 直接输出 markdown 报告，**不再调用任何工具**
 3. 报告输出后绝对禁止再调工具
 

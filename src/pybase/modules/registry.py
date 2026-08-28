@@ -17,6 +17,7 @@ MODULE_REGISTRATIONS: tuple[ModuleRegistration, ...] = (
     # pybase: generated module registrations - start
     ModuleRegistration(name="account", router_path="pybase.modules.account.router:router", requires_database=True),
     ModuleRegistration(name="skills", router_path="pybase.modules.skills.router:router", requires_database=True),
+    ModuleRegistration(name="skills-admin", router_path="pybase.modules.skills.router:admin_router", requires_database=True),
     ModuleRegistration(name="agent", router_path="pybase.modules.agent.router:router", requires_database=False),
     ModuleRegistration(name="auth", router_path="pybase.modules.auth.router:router", requires_database=True),
     # pybase: generated module registrations - end

@@ -77,6 +77,15 @@ class LlmSettings(BaseModel):
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     max_tokens: int = Field(default=4096, ge=1)
 
+
+class RedisSettings(BaseModel):
+    """Redis checkpoint storage configuration."""
+
+    enabled: bool = False
+    url: str = "redis://localhost:6379"
+    key_prefix: str = "pybase:checkpoint"
+    ttl_seconds: int = Field(default=86400, ge=1)
+
 class SchemaProviderSettings(BaseModel):
   source: str = "yaml"
 
@@ -100,6 +109,7 @@ class Settings(BaseSettings):
     auth: AuthSettings = AuthSettings()
     skill: SkillSettings = SkillSettings()
     llm: LlmSettings = LlmSettings()
+    redis: RedisSettings = RedisSettings()
     schema_provider: SchemaProviderSettings = SchemaProviderSettings()
 
 
