@@ -7,6 +7,7 @@ import uuid
 from langchain_core.language_models import BaseChatModel
 from langchain_core.runnables import RunnableConfig
 
+from pybase.contracts import McpToolProvider
 from pybase.modules.account.data_access_guard import DataAccessGuard
 from pybase.modules.agent.middleware.skill_middleware import SkillMiddleware
 from pybase.modules.agent.middleware.tool_logging_middleware import ToolLoggingMiddleware
@@ -45,7 +46,10 @@ class AgentService:
                  explain_precheck_service: ExplainPrecheckService,
                  runner: ReadOnlyQueryRunner,
                  data_access_guard: DataAccessGuard,
-                 session_service: SessionServiceDep, checkpoint: RedisCheckpointComponent | None = None) -> None:
+                 session_service: SessionServiceDep,
+                 checkpoint: RedisCheckpointComponent | None = None,
+                 mcp_echarts: McpToolProvider | None = None,
+                 ) -> None:
         self._chat_model = chat_model
         self._skill_loader = skill_loader
         self._skill_service = service
@@ -57,6 +61,7 @@ class AgentService:
         self._data_access_guard = data_access_guard
         self._session_service = session_service
         self._checkpoint = checkpoint
+        self._mcp_echarts = mcp_echarts
 
     # 简单测试，不使用会话
     async def chat(self, message: str, user: UserRead, conversation_id: str | None = None) -> ChatResponse:
@@ -66,6 +71,7 @@ class AgentService:
         return ChatResponse(answer=str(response["messages"][-1].content_blocks))
 
     async def chat_stream(self, message: str, user: UserRead, conversation_id: str | None = None):
+        # todo 加一个字典用来记录当前活跃的会话，同一时刻只能有一个会话活跃
 
         # 会话标题默认取消息前30个字符
         title = message[:30]
@@ -90,6 +96,7 @@ class AgentService:
             agent = await self._build_agent(user)
             input_data = {"messages": [{"role": "user", "content": message}]}
             stream = await agent.astream_events(input_data, config=config, version="v3")
+
             queue: asyncio.Queue[tuple[str, object] | None] = asyncio.Queue()
 
             async def consume_messages() -> None:
@@ -145,6 +152,7 @@ class AgentService:
                 for result in results:
                     if isinstance(result, Exception) and not isinstance(result, asyncio.CancelledError):
                         raise result
+
         except asyncio.CancelledError:
             has_error = True
             cancelled = True
@@ -185,6 +193,7 @@ class AgentService:
         )
         return agent
 
+    # todo 优化：可缓存，防止每次创建agent 都要重建工具浪费性能
     async def _build_tools(self, user: UserRead):
         skill_tool = create_skill_content_tool(self._skill_loader)
         list_tables = create_list_tables_tool(self._schema_provider)
@@ -195,7 +204,16 @@ class AgentService:
             self._sql_safety_guard, self._explain_precheck_service, self._runner,
             self._data_access_guard, user,
         )
-        return [skill_tool, list_tables, describe_tables, lookup_glossary_tool, validate_sql_tool, execute_sql_tool]
+
+        tools = [skill_tool, list_tables, describe_tables, lookup_glossary_tool, validate_sql_tool, execute_sql_tool]
+
+        # MCP 未启用或连接失败时，不添加远端工具。
+        if self._mcp_echarts is not None:
+            tools.extend(
+                self._mcp_echarts.tools
+            )
+
+        return tools
 
     async def _build_system_prompt(self, user: UserRead):
 
@@ -234,4 +252,33 @@ class AgentService:
         system_prompt += scope_hint
         return system_prompt
 
+    # 错误写法
+    async def _stream(self, stream):
+        async def consume_messages():
+            async for message in stream.messages:
+                async for delta in message.reasoning:
+                    yield send_thinking(delta)
 
+                async for delta in message.text:
+                    yield send_text(delta)
+
+                finalized = await message.tool_calls
+                for tc in finalized or []:
+                    name = tc.get("name") if isinstance(tc, dict) else getattr(tc, "name", "")
+                    args = tc.get("args") if isinstance(tc, dict) else getattr(tc, "args", "")
+                    tool_id = tc.get("id") if isinstance(tc, dict) else getattr(tc, "id", "")
+                    send_tool_call(tool_id, name, args)
+
+        async def consume_tool_calls():
+            async for call in stream.tool_calls:
+                async for _delta in call.output_deltas:
+                    pass  # 流式工具可在这里逐块打印;普通工具没有增量
+                if call.error:
+                    print(f"[工具结果] {call.tool_name} 执行出错: {call.error}")
+                else:
+                    result = call.output
+                    # 终态数据是完整的 ToolMessage 对象(带 content/name/tool_call_id),
+                    # 取它的 content 字段才是工具返回的字符串
+                    yield send_tool_result(result.id, result.content)
+
+        return consume_messages, consume_tool_calls

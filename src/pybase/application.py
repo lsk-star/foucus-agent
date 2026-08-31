@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 def _build_components(settings: Settings) -> ComponentRegistry:
     registry = ComponentRegistry()
+
+    #
     if settings.schema_provider.source == "yaml":
         from pybase.modules.sql_processing.yaml_provider.component import SchemaCatalogComponent
         registry.add(SchemaCatalogComponent())
@@ -44,6 +46,23 @@ def _build_components(settings: Settings) -> ComponentRegistry:
                 "LLM 已启用，但未安装依赖。请执行: uv sync --extra llm"
             ) from exc
         registry.add(LlmComponent(settings.llm))
+    #
+    if settings.mcp_echarts.enabled:
+        try:
+            from pybase.infrastructure.mcp.component import (
+                McpEchartsComponent,
+            )
+        except ImportError as exc:
+            raise ConfigurationError(
+                "mcp-echarts 已启用，但未安装 MCP 依赖。"
+                "请执行: uv sync --extra mcp"
+            ) from exc
+
+        registry.add(
+            McpEchartsComponent(
+                settings.mcp_echarts
+            )
+        )
 
     return registry
 

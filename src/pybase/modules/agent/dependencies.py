@@ -6,6 +6,8 @@ from langchain_core.language_models import BaseChatModel
 from pybase.core.exceptions import DependencyUnavailableError
 from pybase.infrastructure.llm.component import LlmComponent
 from pybase.infrastructure.llm.dependencies import get_llm_component
+from pybase.infrastructure.mcp import McpEchartsComponent
+from pybase.infrastructure.mcp.dependencies import get_mcp_echarts_component
 from pybase.infrastructure.redis.checkpoint import RedisCheckpointComponent
 from pybase.infrastructure.redis.dependencies import get_checkpoint_component
 from pybase.modules.account.data_access_guard import DataAccessGuard
@@ -45,12 +47,15 @@ async def get_agent_service(
         data_access_guard: DataAccessGuard = Depends(get_data_access_guard),
         session_service: SessionService = Depends(get_session_service),
         checkpoint: RedisCheckpointComponent | None = Depends(get_checkpoint_component),
+        mcp_echarts: McpEchartsComponent | None = Depends(
+            get_mcp_echarts_component
+        ),
 ):
     from pybase.modules.agent.service import AgentService
 
     return AgentService(
         chat_model, skill_loader, service, schema_provider,
-        catalog_service, guard, precheck_service, runner, data_access_guard, session_service, checkpoint,
+        catalog_service, guard, precheck_service, runner, data_access_guard, session_service, checkpoint, mcp_echarts
     )
 
 

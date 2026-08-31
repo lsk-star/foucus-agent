@@ -6,7 +6,6 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 # Resolve configuration from the repository root instead of the process cwd.
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 ENV_FILE = PROJECT_ROOT / ".env"
@@ -70,9 +69,9 @@ class SkillSettings(BaseModel):
 
 class LlmSettings(BaseModel):
     enabled: bool = False
-    provider: str = "openai"               # openai / deepseek / zhipu
+    provider: str = "openai"  # openai / deepseek / zhipu
     api_key: str | None = None
-    api_base: str | None = None            # 自定义 base_url（DeepSeek 等需要）
+    api_base: str | None = None  # 自定义 base_url（DeepSeek 等需要）
     model: str = "gpt-4o"
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     max_tokens: int = Field(default=4096, ge=1)
@@ -86,9 +85,42 @@ class RedisSettings(BaseModel):
     key_prefix: str = "pybase:checkpoint"
     ttl_seconds: int = Field(default=86400, ge=1)
 
-class SchemaProviderSettings(BaseModel):
-  source: str = "yaml"
 
+class SchemaProviderSettings(BaseModel):
+    source: str = "yaml"
+
+
+# class McpEchartsSettings(BaseModel):
+#     enabled: bool = False
+#     url: str = "http://127.0.0.1:3033/mcp"
+#     connect_timeout_seconds: float = Field(default=5.0, gt=0)
+#     required: bool = False
+
+class McpEchartsSettings(BaseModel):
+    """
+    mcp-echarts 配置。
+
+    mcp-echarts 是独立 Node.js 服务，
+    当前 FastAPI 服务通过 streamable HTTP 访问它。
+    """
+
+    enabled: bool = False
+
+    # mcp-echarts 默认地址
+    url: str = "http://127.0.0.1:3033/mcp"
+
+    # 启动阶段获取远端工具的超时时间
+    connect_timeout_seconds: float = Field(
+        default=5.0,
+        gt=0,
+    )
+
+    # 远端工具统一添加前缀，避免与本地工具重名
+    tool_name_prefix: str = "echarts_"
+
+    # true：连接失败时阻止应用启动
+    # false：连接失败时应用仍启动，但图表工具不可用
+    strict_startup: bool = False
 
 
 class Settings(BaseSettings):
@@ -111,6 +143,7 @@ class Settings(BaseSettings):
     llm: LlmSettings = LlmSettings()
     redis: RedisSettings = RedisSettings()
     schema_provider: SchemaProviderSettings = SchemaProviderSettings()
+    mcp_echarts: McpEchartsSettings = McpEchartsSettings()
 
 
 @lru_cache
